@@ -102,11 +102,6 @@ class SkeletonCLR(nn.Module):
         # HYP: Initialize the Poincaré ball manifold
         c = 0.5
         poincare_ball = gt.PoincareBall(c)
-        #ball_dim = self.encoder_q.fc.weight.shape[0]
-        #xp = torch.zeros((ball_dim,))
-        
-
-        #grad_fix = lambda x: pmath.RiemannianGradient.apply(x)
 
         # compute query features
         q = self.encoder_q(im_q)  # queries: NxC

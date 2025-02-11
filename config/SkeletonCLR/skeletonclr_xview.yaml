@@ -3,8 +3,8 @@ work_dir: work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150
 # feeder
 train_feeder: feeder.ntu_feeder.Feeder_dual
 train_feeder_args:
-  data_path: ../CrosSCLR_data/data_test5/NTU60_frame50/xview/train_position.npy
-  label_path: ../CrosSCLR_data/data_test5/NTU-RGB-D/xview/train_label.pkl 
+  data_path: ../data_preprocessed/data_test5/NTU60_frame50/xview/train_position.npy
+  label_path: ../data_preprocessed/data_test5/NTU-RGB-D/xview/train_label.pkl 
   shear_amplitude: 0.5
   temperal_padding_ratio: 6
   mmap: True
@@ -14,7 +14,7 @@ model: net.skeletonclr.SkeletonCLR
 model_args:
   base_encoder: net.st_gcn.Model
   pretrain: True
-  feature_dim: 128
+  feature_dim: 32
   queue_size: 32768
   momentum: 0.999
   Temperature: 0.07
@@ -44,6 +44,11 @@ num_epoch: 300
 start_epoch: 0
 
 view: 'joint'
+
+# cross training: change for supervised loss after 150 epochs
+#topk: 1
+#cross_epoch: 150
+#context: True
 
 # log
 save_interval: 5

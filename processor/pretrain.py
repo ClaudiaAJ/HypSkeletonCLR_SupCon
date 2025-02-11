@@ -23,6 +23,7 @@ import geoopt as gt
 
 from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR
 
+import wandb
 
 def weights_init(m):
     classname = m.__class__.__name__
@@ -38,6 +39,20 @@ class PT_Processor(Processor):
     """
         Processor for Pretraining.
     """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Initialize wandb run
+        wandb.init(
+            project="HypSkeletonCLR",
+            config={
+                "learning_rate": self.arg.base_lr,
+                "optimizer": self.arg.optimizer,
+                "weight_decay": self.arg.weight_decay,
+                "nesterov": self.arg.nesterov,
+                "num_epochs": self.arg.num_epoch,
+            }
+        )
 
     def load_model(self):
         self.model = self.io.load_model(self.arg.model,
@@ -67,10 +82,10 @@ class PT_Processor(Processor):
                 weight_decay=self.arg.weight_decay)
         else:
             raise ValueError()
-        
+        '''
         # Initialize CosineAnnealingLR after a warmup phase
-        warmup_epochs = 10
-        num_cycles = 3
+        warmup_epochs = 15
+        num_cycles = 1
         
         # Compute the duration of each cycle
         remaining_epochs = self.arg.num_epoch - warmup_epochs
@@ -98,7 +113,24 @@ class PT_Processor(Processor):
             self.lr_scheduler = LambdaLR(self.optimizer, lr_lambda)
         else:
             self.lr_scheduler = None  # No scheduler if num_epoch is not defined
-
+        '''
+        # Initialize CosineAnnealingLR after a warmup phase
+        warmup_epochs = 15
+        if self.arg.num_epoch > 0: 
+            def lr_lambda(epoch):
+                if epoch < warmup_epochs:
+                    # Linear warmup
+                    return epoch / warmup_epochs
+                else:
+                    # Scale for cosine annealing (after warmup)
+                    cosine_scheduler = CosineAnnealingLR(self.optimizer,T_max=self.arg.num_epoch - warmup_epochs,eta_min=0)
+                    cosine_scheduler.step(epoch - warmup_epochs)  # Adjust for post-warmup epochs
+                    return self.optimizer.param_groups[0]['lr'] / self.arg.base_lr
+            # Combine warmup and cosine annealing with LambdaLR
+            self.lr_scheduler = LambdaLR(self.optimizer, lr_lambda)
+        else:
+            self.lr_scheduler = None  # No scheduler if num_epoch is not defined
+        
     def adjust_lr(self):
         # Using CosineAnnealingLR scheduler with warmup
         if self.lr_scheduler:
@@ -145,6 +177,15 @@ class PT_Processor(Processor):
             loss_value.append(self.iter_info['loss'])
             self.show_iter_info()
             self.meta_info['iter'] += 1
+
+            # Log metrics to wandb
+            wandb.log({
+                "loss": loss.data.item(),
+                "learning_rate": self.lr,
+                "epoch": epoch,
+                "global_step": self.global_step,
+            })
+
             self.train_log_writer(epoch)
 
         self.epoch_info['train_mean_loss']= np.mean(loss_value)

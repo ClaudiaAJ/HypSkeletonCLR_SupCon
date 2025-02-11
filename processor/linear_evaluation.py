@@ -23,6 +23,53 @@ import geoopt as gt
 
 from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR
 
+import wandb
+
+from sklearn.decomposition import PCA, TruncatedSVD
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+def visualize_latent_space(features, labels, method='pca', n_components=2, random_state=42, save_path=None):
+
+    features = np.concatenate(features, axis=0)
+    labels = np.concatenate(labels, axis=0)
+
+    if method == 'pca':
+        reducer = PCA(n_components=n_components, random_state=random_state)
+    elif method == 'svd':
+        reducer = TruncatedSVD(n_components=n_components, random_state=random_state)
+    else:
+        raise ValueError("Unsupported method. Choose either 'pca' or 'svd'.")
+
+    reduced_features = reducer.fit_transform(features)
+
+    # Create a scatter plot
+    plt.figure(figsize=(8, 6))
+    palette = sns.color_palette("hsv", len(np.unique(labels)))
+    sns.scatterplot(
+        x=reduced_features[:, 0],
+        y=reduced_features[:, 1],
+        hue=labels,
+        palette=palette,
+        legend=False,
+        alpha=0.7
+    )
+    if method == 'pca':
+        plt.title(f"PCA of Model Output Features")
+        plt.xlabel("Principal Component 1")
+        plt.ylabel("Principal Component 2")
+    
+    elif method == 'svd':
+        plt.title(f"SVD of Model Output Features")
+        plt.xlabel("Singular Value 1")
+        plt.ylabel("Singular Value 2")
+    # Save the plot if a save path is provided
+    if save_path:
+        plt.savefig(save_path, format='png', dpi=300, bbox_inches='tight')
+        print(f"Plot saved to {save_path}")
+    
+    plt.show()
+
 def weights_init(m):
     classname = m.__class__.__name__
     if classname.find('Conv1d') != -1 or classname.find('Conv2d') != -1 or classname.find('Linear') != -1:
@@ -37,6 +84,30 @@ class LE_Processor(Processor):
     """
         Processor for Linear Evaluation.
     """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Initialize WandB
+        wandb.init(
+            project="HypSkeletonCLR",
+            config={
+                "base_lr": self.arg.base_lr,
+                "step": self.arg.step,
+                "optimizer": self.arg.optimizer,
+                "nesterov": self.arg.nesterov,
+                "weight_decay": self.arg.weight_decay,
+                "view": self.arg.view,
+                "cross_epoch": self.arg.cross_epoch,
+                "context": self.arg.context,
+                "topk": self.arg.topk,
+                "show_topk": self.arg.show_topk,
+                "batch_size": self.arg.batch_size,
+                "num_epoch": self.arg.num_epoch,
+                "model_args": self.arg.model_args,
+            },
+        )
+        self.best_result = 0
+        self.all_features = []
+        self.all_labels = []
 
     def load_model(self):
         self.model = self.io.load_model(self.arg.model,
@@ -86,8 +157,8 @@ class LE_Processor(Processor):
             raise ValueError()
         
        # Initialize CosineAnnealingLR after a warmup phase
-        warmup_epochs = 10
-        num_cycles = 3
+        warmup_epochs = 0
+        num_cycles = 1
         
         # Compute the duration of each cycle
         remaining_epochs = self.arg.num_epoch - warmup_epochs
@@ -189,6 +260,7 @@ class LE_Processor(Processor):
         loss_value = []
         result_frag = []
         label_frag = []
+        features = []
 
         for data, label in loader:
             # get data
@@ -198,6 +270,8 @@ class LE_Processor(Processor):
             # inference
             with torch.no_grad():
                 output = self.model(data, view=self.arg.view)
+                latent_features = self.model.encoder_q(data)  # Extract latent features
+                features.append(latent_features.cpu().numpy())
             result_frag.append(output.data.cpu().numpy())
 
             # get loss
@@ -208,6 +282,11 @@ class LE_Processor(Processor):
         self.result = np.concatenate(result_frag)
         self.label = np.concatenate(label_frag)
 
+        features = np.concatenate(features)
+
+        self.all_features.append(features)
+        self.all_labels.append(self.label)
+
         self.eval_info['eval_mean_loss']= np.mean(loss_value)
         self.show_eval_info()
 
@@ -216,7 +295,17 @@ class LE_Processor(Processor):
             self.show_topk(k)
         self.show_best(1)
 
+        wandb.log({"eval_loss": np.mean(loss_value), "epoch": epoch, "best_accuracy": self.best_result})
+
         self.eval_log_writer(epoch)
+
+        if epoch == 100:
+            print("Last epoch reached! Generating plots with model output features...")
+            save_path_svd = f"latent_space_svd.png"
+            save_path_pca = f"latent_space_pca.png"
+
+            visualize_latent_space(self.all_features, self.all_labels, method='svd', save_path=save_path_svd)
+            visualize_latent_space(self.all_features, self.all_labels, method='pca', save_path=save_path_pca)
 
     @staticmethod
     def get_parser(add_help=False):
