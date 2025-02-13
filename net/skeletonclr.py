@@ -117,9 +117,9 @@ class SkeletonCLR(nn.Module):
             k = poincare_ball.expmap0(k)
 
         # compute logits
-        # Einstein sum is more intuitive
         # positive logits: Nx1
         l_pos = -poincare_ball.dist(q, k).unsqueeze(-1)
+        
         # negative logits: NxK
         # HYP: Transpose self.queue to match dimensions for pairwise comparison (N, K)
         # Expand q and queue to compute pairwise distances
