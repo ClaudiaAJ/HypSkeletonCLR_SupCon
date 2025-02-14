@@ -15,7 +15,7 @@ class SkeletonCLR(nn.Module):
                  momentum=0.999, Temperature=0.07, mlp=True, in_channels=3, hidden_channels=64,
                  hidden_dim=256, num_class=60, dropout=0.5,
                  graph_args={'layout': 'ntu-rgb+d', 'strategy': 'spatial'},
-                 edge_importance_weighting=True, **kwargs):
+                 edge_importance_weighting=True, curvature=1.0, **kwargs):
         """
         K: queue size; number of negative keys (default: 32768)
         m: momentum of updating key encoder (default: 0.999)
@@ -36,6 +36,7 @@ class SkeletonCLR(nn.Module):
             self.K = queue_size
             self.m = momentum
             self.T = Temperature
+            self.c = curvature
 
             self.encoder_q = base_encoder(in_channels=in_channels, hidden_channels=hidden_channels,
                                           hidden_dim=hidden_dim, num_class=feature_dim,
@@ -100,42 +101,45 @@ class SkeletonCLR(nn.Module):
             return self.encoder_q(im_q)
 
         # HYP: Initialize the Poincaré ball manifold
-        c = 0.5
-        poincare_ball = gt.PoincareBall(c)
+        poincare_ball = gt.PoincareBall(self.c)
 
         # compute query features
-        q = self.encoder_q(im_q)  # queries: NxC
+        q = self.encoder_q(im_q)  # queries shape: [batch_size, feature_dim]
         # HYP: Embed in the Poincaré ball
-        q = poincare_ball.expmap0(q)
+        q = poincare_ball.expmap0(q) # shape: [batch_size, feature_dim]
 
         # compute key features
         with torch.no_grad():  # no gradient to keys
             self._momentum_update_key_encoder()  # update the key encoder
 
-            k = self.encoder_k(im_k)  # keys: NxC
+            k = self.encoder_k(im_k)  # keys shape: [batch_size, feature_dim]
             # HYP: Embed in the Poincaré ball
-            k = poincare_ball.expmap0(k)
+            k = poincare_ball.expmap0(k) # shape: [batch_size, feature_dim]
 
         # compute logits
-        # positive logits: Nx1
-        l_pos = -poincare_ball.dist(q, k).unsqueeze(-1)
-        
-        # negative logits: NxK
-        # HYP: Transpose self.queue to match dimensions for pairwise comparison (N, K)
+        # positive logits shape: [batch_size, 1]
+        l_pos = -poincare_ball.dist(q, k).unsqueeze(-1) 
+
+        # negative logits shape: [batch_size, queue_size]
+        # HYP: Transpose self.queue to match dimensions for pairwise comparison [batch_size, queue_size]
         # Expand q and queue to compute pairwise distances
         # Compute all pairwise (negative) hyperbolic distances between q and queue
-        l_neg = -poincare_ball.dist(q.unsqueeze(1), self.queue.clone().detach().T.unsqueeze(0))
-        # logits: Nx(1+K)
-        logits = torch.cat([l_pos, l_neg], dim=1)
+        l_neg = -poincare_ball.dist(q.unsqueeze(1), self.queue.clone().detach().T.unsqueeze(0)) 
 
+        # logits shape: [batch_size, 1+queue_size])
+        logits = torch.cat([l_pos, l_neg], dim=1)
+        
         # apply temperature
         logits /= self.T
 
         # labels: positive key indicators
         labels = torch.zeros(logits.shape[0], dtype=torch.long).cuda()
 
+        # HYP: Supervised Contrastive Learning
+        # Combine q (query) and k (key) as two views of the same image
+        features = torch.cat([q.unsqueeze(1), k.unsqueeze(1)], dim=1)  # features shape: [batch_size, n_views, feature_dim], with n_views=2 (q and k)
         # dequeue and enqueue
         self._dequeue_and_enqueue(k)
 
-        return logits, labels
+        return logits, labels, features
         

@@ -88,7 +88,7 @@ class LE_Processor(Processor):
         super().__init__(*args, **kwargs)
         # Initialize WandB
         wandb.init(
-            project="HypSkeletonCLR",
+            project="HypSkeletonCLR_SupCon",
             config={
                 "base_lr": self.arg.base_lr,
                 "step": self.arg.step,
@@ -156,9 +156,8 @@ class LE_Processor(Processor):
         else:
             raise ValueError()
         
-        '''
-        # Initialize CosineAnnealingLR after a warmup phase
-        warmup_epochs = 15
+       # Initialize CosineAnnealingLR after a warmup phase
+        warmup_epochs = 0
         num_cycles = 1
         
         # Compute the duration of each cycle
@@ -184,23 +183,6 @@ class LE_Processor(Processor):
                     return (min_lr + (cycle_start_lr - min_lr) * cosine_decay) / self.arg.base_lr
             
             # Create the LambdaLR scheduler with the custom function
-            self.lr_scheduler = LambdaLR(self.optimizer, lr_lambda)
-        else:
-            self.lr_scheduler = None  # No scheduler if num_epoch is not defined
-        '''
-        # Initialize CosineAnnealingLR after a warmup phase
-        warmup_epochs = 0
-        if self.arg.num_epoch > 0: 
-            def lr_lambda(epoch):
-                if epoch < warmup_epochs:
-                    # Linear warmup
-                    return epoch / warmup_epochs
-                else:
-                    # Scale for cosine annealing (after warmup)
-                    cosine_scheduler = CosineAnnealingLR(self.optimizer,T_max=self.arg.num_epoch - warmup_epochs,eta_min=0)
-                    cosine_scheduler.step(epoch - warmup_epochs)  # Adjust for post-warmup epochs
-                    return self.optimizer.param_groups[0]['lr'] / self.arg.base_lr
-            # Combine warmup and cosine annealing with LambdaLR
             self.lr_scheduler = LambdaLR(self.optimizer, lr_lambda)
         else:
             self.lr_scheduler = None  # No scheduler if num_epoch is not defined

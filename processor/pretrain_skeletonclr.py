@@ -21,6 +21,8 @@ from torchlight import import_class
 from .processor import Processor
 from .pretrain import PT_Processor
 
+from tools.losses import SupConLoss
+
 
 class SkeletonCLR_Processor(PT_Processor):
     """
@@ -69,12 +71,22 @@ class SkeletonCLR_Processor(PT_Processor):
                 raise ValueError
 
             # forward
-            output, target = self.model(data1, data2)
-            if hasattr(self.model, 'module'):
-                self.model.module.update_ptr(output.size(0))
+            if epoch <= self.arg.sup_epoch:
+                output, target, _ = self.model(data1, data2)
+                if hasattr(self.model, 'module'):
+                    self.model.module.update_ptr(output.size(0))
+                else:
+                    self.model.update_ptr(output.size(0))
+                loss = self.loss(output, target)
             else:
-                self.model.update_ptr(output.size(0))
-            loss = self.loss(output, target)
+                output, target, features = self.model(data1, data2)
+                if hasattr(self.model, 'module'):
+                    self.model.module.update_ptr(output.size(0))
+                else:
+                    self.model.update_ptr(output.size(0))
+                criterion = SupConLoss(temperature=self.arg.temperature)
+                loss = criterion(features, target)
+
 
             # backward
             self.optimizer.zero_grad()
@@ -110,6 +122,9 @@ class SkeletonCLR_Processor(PT_Processor):
         parser.add_argument('--nesterov', type=str2bool, default=True, help='use nesterov or not')
         parser.add_argument('--weight_decay', type=float, default=0.0001, help='weight decay for optimizer')
         parser.add_argument('--view', type=str, default='joint', help='the view of input')
+        parser.add_argument('--sup_epoch', type=int, default=1e6, help='the starting epoch of supervised training')
+        parser.add_argument('--temperature', type=float, default=0.07, help='the temperature used in supervised training loss')
+        
         # endregion yapf: enable
 
         return parser
