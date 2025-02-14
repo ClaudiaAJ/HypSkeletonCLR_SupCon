@@ -1,18 +1,18 @@
 protocolVersion: 2
-name: HypSkeletonCLR
+name: HypSkeletonCLR_SupCon
 type: job
 prerequisites:
   - name: image
     type: dockerimage
     uri: >-
-      master.garching.cluster.campar.in.tum.de:10443/crossclr/crossclr:hyp
+      master.garching.cluster.campar.in.tum.de:10443/hypskeletonclr/hypskeletonclr:latest
 taskRoles:
   train:
     instances: 1
     dockerImage: image
     resourcePerInstance:
       cpu: 4
-      memoryMB: 60000
+      memoryMB: 30000
       gpu: 1
     nodeSelectionPerInstance:
       - key: nvidia.com/gpu.memory
@@ -26,14 +26,14 @@ taskRoles:
     commands:
       - echo "Start"
       # This is the path where the vscode extension will upload the files specified in the .vscode/settings.json config.
-      - cd /mnt/scratch/HypSkeletonCLR
+      - cd /mnt/scratch/HypSkeletonCLR_SupCon
       
-      - pip install --upgrade requests urllib3
-      - pip install wandb
+      #- pip install --upgrade requests urllib3
+      #- pip install wandb
       - export WANDB_API_KEY=8f7dc3eab0cb8691f587c5f508a1be5a585eddc4
-      - pip install scikit-learn
-      - pip install matplotlib
-      - pip install seaborn
+      #- pip install scikit-learn
+      #- pip install matplotlib
+      #- pip install seaborn
       
       # SkeletonCLR
       - python3 main.py pretrain_skeletonclr --config config/SkeletonCLR/skeletonclr_xview.yaml

@@ -27,6 +27,9 @@ RUN python3 -m pip install --no-cache-dir numpy==1.24.4
 # Install PyTorch and CUDA dependencies
 RUN python3 -m pip install --no-cache-dir torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --extra-index-url https://download.pytorch.org/whl/cu121
 
+# Upgrade requests, and urllib3
+RUN python3 -m pip install --upgrade requests urllib3
+
 # Copy requirements.txt into the container
 COPY requirements.txt /workspace/requirements.txt
 
