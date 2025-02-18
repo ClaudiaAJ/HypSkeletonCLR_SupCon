@@ -6,15 +6,15 @@ ignore_weights: [encoder_q.fc, encoder_q_motion.fc, encoder_q_bone.fc, encoder_k
 # feeder
 train_feeder: feeder.ntu_feeder.Feeder_single
 train_feeder_args:
-  data_path: ../CrosSCLR_data/data/NTU60_frame50/xview/train_position.npy
-  label_path: ../CrosSCLR_data/data/NTU-RGB-D/xview/train_label.pkl 
+  data_path: ../data_preprocessed/data/NTU60_frame50/xview/train_position.npy
+  label_path: ../data_preprocessed/data/NTU-RGB-D/xview/train_label.pkl 
   shear_amplitude: -1
   temperal_padding_ratio: -1
   mmap: True
 test_feeder: feeder.ntu_feeder.Feeder_single
 test_feeder_args:
-  data_path: ../CrosSCLR_data/data/NTU60_frame50/xview/val_position.npy
-  label_path: ../CrosSCLR_data/data/NTU-RGB-D/xview/val_label.pkl 
+  data_path: ../data_preprocessed/data/NTU60_frame50/xview/val_position.npy
+  label_path: ../data_preprocessed/data/NTU-RGB-D/xview/val_label.pkl 
   shear_amplitude: -1
   temperal_padding_ratio: -1
   mmap: True
@@ -42,7 +42,7 @@ model_args:
 # optim
 nesterov: True
 weight_decay: 0.0
-base_lr: 7.
+base_lr: 3.
 optimizer: SGD
 step: [80]
 

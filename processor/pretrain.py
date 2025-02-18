@@ -23,8 +23,6 @@ import geoopt as gt
 
 from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR
 
-import wandb
-
 def weights_init(m):
     classname = m.__class__.__name__
     if classname.find('Conv1d') != -1 or classname.find('Conv2d') != -1 or classname.find('Linear') != -1:
@@ -41,18 +39,6 @@ class PT_Processor(Processor):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        # Initialize wandb run
-        wandb.init(
-            project="HypSkeletonCLR_SupCon",
-            config={
-                "learning_rate": self.arg.base_lr,
-                "optimizer": self.arg.optimizer,
-                "weight_decay": self.arg.weight_decay,
-                "nesterov": self.arg.nesterov,
-                "num_epochs": self.arg.num_epoch,
-            }
-        )
 
     def load_model(self):
         self.model = self.io.load_model(self.arg.model,
@@ -177,15 +163,6 @@ class PT_Processor(Processor):
             loss_value.append(self.iter_info['loss'])
             self.show_iter_info()
             self.meta_info['iter'] += 1
-
-            # Log metrics to wandb
-            wandb.log({
-                "loss": loss.data.item(),
-                "learning_rate": self.lr,
-                "epoch": epoch,
-                "global_step": self.global_step,
-            })
-
             self.train_log_writer(epoch)
 
         self.epoch_info['train_mean_loss']= np.mean(loss_value)

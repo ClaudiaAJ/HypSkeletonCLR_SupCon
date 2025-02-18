@@ -23,17 +23,36 @@ from .pretrain import PT_Processor
 
 from tools.losses import SupConLoss
 
+import wandb
 
 class SkeletonCLR_Processor(PT_Processor):
     """
         Processor for SkeletonCLR Pretraining.
     """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Initialize wandb run
+        wandb.init(project="HypSkeletonCLR_SupCon")
+        wandb.config.update({
+            "learning_rate": self.arg.base_lr,
+            "optimizer": self.arg.optimizer,
+            "weight_decay": self.arg.weight_decay,
+            "nesterov": self.arg.nesterov,
+            "num_epochs": self.arg.num_epoch,
+            "sup_epoch": self.arg.sup_epoch,
+            "temperature": self.arg.temperature,
+            "curvature": self.arg.curvature,
+        })
 
     def train(self, epoch):
         self.model.train()
         self.adjust_lr()
         loader = self.data_loader['train']
         loss_value = []
+
+        wandb.watch(self.model)
+        # wandb.watch(self.model, log="all") # for logging of parameters panels
 
         for [data1, data2], label in loader:
             self.global_step += 1
@@ -79,14 +98,23 @@ class SkeletonCLR_Processor(PT_Processor):
                     self.model.update_ptr(output.size(0))
                 loss = self.loss(output, target)
             else:
-                output, target, features = self.model(data1, data2)
+                # new loss function: mean of unsupervised and supervised loss
+                output, target, _ = self.model(data1, data2)
                 if hasattr(self.model, 'module'):
                     self.model.module.update_ptr(output.size(0))
                 else:
                     self.model.update_ptr(output.size(0))
-                criterion = SupConLoss(temperature=self.arg.temperature)
-                loss = criterion(features, target)
+                loss_unsup = self.loss(output, target)
 
+                output_sup, target_sup, features_sup = self.model(data1, data2)
+                if hasattr(self.model, 'module'):
+                    self.model.module.update_ptr(output_sup.size(0))
+                else:
+                    self.model.update_ptr(output_sup.size(0))
+                criterion = SupConLoss(temperature=self.arg.temperature, curvature=self.arg.curvature)
+                loss_sup = criterion(features_sup, target_sup)
+                
+                loss = (loss_unsup + loss_sup) / 2
 
             # backward
             self.optimizer.zero_grad()
@@ -99,10 +127,27 @@ class SkeletonCLR_Processor(PT_Processor):
             loss_value.append(self.iter_info['loss'])
             self.show_iter_info()
             self.meta_info['iter'] += 1
+
+            if self.global_step % 100 == 0:
+                # Log metrics to wandb
+                wandb.log({
+                    "loss": loss.data.item(),
+                    "learning_rate": self.lr,
+                    "epoch": epoch},
+                    step=self.global_step)
+            
             self.train_log_writer(epoch)
 
         self.epoch_info['train_mean_loss']= np.mean(loss_value)
         self.train_writer.add_scalar('loss', self.epoch_info['train_mean_loss'], epoch)
+
+        # Log epoch-level mean loss
+        wandb.log({
+            "train_mean_loss": np.mean(loss_value),
+            "learning_rate": self.lr,
+            "epoch": epoch},
+            step=self.global_step)
+
         self.show_epoch_info()
 
     @staticmethod
@@ -124,6 +169,7 @@ class SkeletonCLR_Processor(PT_Processor):
         parser.add_argument('--view', type=str, default='joint', help='the view of input')
         parser.add_argument('--sup_epoch', type=int, default=1e6, help='the starting epoch of supervised training')
         parser.add_argument('--temperature', type=float, default=0.07, help='the temperature used in supervised training loss')
+        parser.add_argument('--curvature', type=float, default=1.0, help='the curvature of the Poincaré ball')
         
         # endregion yapf: enable
 

@@ -27,17 +27,13 @@ taskRoles:
       - echo "Start"
       # This is the path where the vscode extension will upload the files specified in the .vscode/settings.json config.
       - cd /mnt/scratch/HypSkeletonCLR_SupCon
-      
-      #- pip install --upgrade requests urllib3
-      #- pip install wandb
+      # WandB API key
       - export WANDB_API_KEY=8f7dc3eab0cb8691f587c5f508a1be5a585eddc4
-      #- pip install scikit-learn
-      #- pip install matplotlib
-      #- pip install seaborn
       
       # SkeletonCLR
       - python3 main.py pretrain_skeletonclr --config config/SkeletonCLR/skeletonclr_xview.yaml
       #- python3 main.py linear_evaluation --config config/linear_eval/linear_eval_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/epoch300_model.pt
+      
       - echo "Done"
 extras:
   com.microsoft.pai.runtimeplugin:

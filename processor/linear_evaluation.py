@@ -89,22 +89,9 @@ class LE_Processor(Processor):
         # Initialize WandB
         wandb.init(
             project="HypSkeletonCLR_SupCon",
-            config={
-                "base_lr": self.arg.base_lr,
-                "step": self.arg.step,
-                "optimizer": self.arg.optimizer,
-                "nesterov": self.arg.nesterov,
-                "weight_decay": self.arg.weight_decay,
-                "view": self.arg.view,
-                "cross_epoch": self.arg.cross_epoch,
-                "context": self.arg.context,
-                "topk": self.arg.topk,
-                "show_topk": self.arg.show_topk,
-                "batch_size": self.arg.batch_size,
-                "num_epoch": self.arg.num_epoch,
-                "model_args": self.arg.model_args,
-            },
+            config=vars(self.arg),  # Pass all arguments to wandb config
         )
+
         self.best_result = 0
         self.all_features = []
         self.all_labels = []
@@ -156,8 +143,9 @@ class LE_Processor(Processor):
         else:
             raise ValueError()
         
-       # Initialize CosineAnnealingLR after a warmup phase
-        warmup_epochs = 0
+        '''
+        # Initialize CosineAnnealingLR after a warmup phase
+        warmup_epochs = 15
         num_cycles = 1
         
         # Compute the duration of each cycle
@@ -186,8 +174,25 @@ class LE_Processor(Processor):
             self.lr_scheduler = LambdaLR(self.optimizer, lr_lambda)
         else:
             self.lr_scheduler = None  # No scheduler if num_epoch is not defined
+        '''
+        # Initialize CosineAnnealingLR after a warmup phase
+        warmup_epochs = 0
+        if self.arg.num_epoch > 0: 
+            def lr_lambda(epoch):
+                if epoch < warmup_epochs:
+                    # Linear warmup
+                    return epoch / warmup_epochs
+                else:
+                    # Scale for cosine annealing (after warmup)
+                    cosine_scheduler = CosineAnnealingLR(self.optimizer,T_max=self.arg.num_epoch - warmup_epochs,eta_min=0)
+                    cosine_scheduler.step(epoch - warmup_epochs)  # Adjust for post-warmup epochs
+                    return self.optimizer.param_groups[0]['lr'] / self.arg.base_lr
+            # Combine warmup and cosine annealing with LambdaLR
+            self.lr_scheduler = LambdaLR(self.optimizer, lr_lambda)
+        else:
+            self.lr_scheduler = None  # No scheduler if num_epoch is not defined
 
-    def adjust_lr(self):
+    def adjust_lr_scheduler(self):
         # Using CosineAnnealingLR scheduler with warmup
         if self.lr_scheduler:
             self.lr_scheduler.step()  # Update the learning rate based on the current epoch
@@ -195,7 +200,7 @@ class LE_Processor(Processor):
         else:
             self.lr = self.arg.base_lr
 
-    def adjust_lr_old(self):
+    def adjust_lr(self):
         if self.arg.optimizer == 'SGD' and self.arg.step:
             lr = self.arg.base_lr * (
                 0.1**np.sum(self.meta_info['epoch'] > np.array(self.arg.step)))
@@ -248,6 +253,15 @@ class LE_Processor(Processor):
             loss_value.append(self.iter_info['loss'])
             self.show_iter_info()
             self.meta_info['iter'] += 1
+
+            if self.global_step % 100 == 0:
+                # Log metrics to wandb
+                wandb.log({
+                    "train_loss": loss.data.item(),
+                    "learning_rate": self.lr,
+                    "epoch": epoch},
+                    step=self.global_step)
+
             self.train_log_writer(epoch)
 
         self.epoch_info['train_mean_loss']= np.mean(loss_value)
@@ -295,7 +309,11 @@ class LE_Processor(Processor):
             self.show_topk(k)
         self.show_best(1)
 
-        wandb.log({"eval_loss": np.mean(loss_value), "epoch": epoch, "best_accuracy": self.best_result})
+        wandb.log({
+            "eval_loss": np.mean(loss_value),
+            "best_accuracy": self.best_result,
+            "epoch": epoch},
+            step=self.global_step)
 
         self.eval_log_writer(epoch)
 

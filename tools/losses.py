@@ -78,21 +78,19 @@ class SupConLoss(nn.Module):
         # anchor_feature.unsqueeze(1) shape: [n_views, 1, feature_dim]
         # contrast_feature.unsqueeze(0) shape: [1, n_views, feature_dim]
         # hyp_dist shape: [n_views, n_views]
-        hyp_dist = poincare_ball.dist(anchor_feature.unsqueeze(1), contrast_feature.unsqueeze(0))
-        #print("hyp_dist:", hyp_dist)
+        #hyp_dist = poincare_ball.dist(anchor_feature.unsqueeze(1), contrast_feature.unsqueeze(0))
+        
+        # hyp_dist shape: [n_views]
+        hyp_dist = -poincare_ball.dist(anchor_feature, contrast_feature)
 
         anchor_dot_contrast = torch.div(hyp_dist, self.temperature)
         #anchor_dot_contrast = torch.div(
         #    torch.matmul(anchor_feature, contrast_feature.T),
         #    self.temperature)
-        #print("anchor_dot_contrast:", anchor_dot_contrast)
 
         # for numerical stability
         logits_max, _ = torch.max(anchor_dot_contrast, dim=0, keepdim=True)
-        #print("logits_max:", logits_max)
-
         logits = anchor_dot_contrast - logits_max.detach()
-        #print("logits:", logits)
 
         # tile mask
         mask = mask.repeat(anchor_count, contrast_count)
