@@ -45,6 +45,8 @@ class SkeletonCLR_Processor(PT_Processor):
             "curvature": self.arg.curvature,
         })
 
+        self.criterion = SupConLoss(temperature=self.arg.temperature, curvature=self.arg.curvature)
+
     def train(self, epoch):
         self.model.train()
         self.adjust_lr()
@@ -90,7 +92,8 @@ class SkeletonCLR_Processor(PT_Processor):
                 raise ValueError
 
             # forward
-            if epoch <= self.arg.sup_epoch:
+            #if epoch <= self.arg.sup_epoch:
+            if epoch < self.arg.sup_epoch:
                 output, target, _ = self.model(data1, data2)
                 if hasattr(self.model, 'module'):
                     self.model.module.update_ptr(output.size(0))
@@ -98,23 +101,21 @@ class SkeletonCLR_Processor(PT_Processor):
                     self.model.update_ptr(output.size(0))
                 loss = self.loss(output, target)
             else:
-                # new loss function: mean of unsupervised and supervised loss
-                output, target, _ = self.model(data1, data2)
+                output, target, features_sup = self.model(data1, data2)
                 if hasattr(self.model, 'module'):
                     self.model.module.update_ptr(output.size(0))
                 else:
                     self.model.update_ptr(output.size(0))
-                loss_unsup = self.loss(output, target)
-
-                output_sup, target_sup, features_sup = self.model(data1, data2)
-                if hasattr(self.model, 'module'):
-                    self.model.module.update_ptr(output_sup.size(0))
-                else:
-                    self.model.update_ptr(output_sup.size(0))
-                criterion = SupConLoss(temperature=self.arg.temperature, curvature=self.arg.curvature)
-                loss_sup = criterion(features_sup, target_sup)
                 
-                loss = (loss_unsup + loss_sup) / 2
+                loss_unsup = self.loss(output, target)
+                
+                label_sup = label
+                loss_sup = self.criterion(features_sup, label_sup)
+                
+                # new loss function: scaled sum of unsupervised and supervised loss
+                #alpha = (epoch - self.arg.sup_epoch) / (self.arg.num_epoch - self.arg.sup_epoch)
+                alpha = 1
+                loss = (1 - alpha) * loss_unsup + alpha * loss_sup
 
             # backward
             self.optimizer.zero_grad()
@@ -140,7 +141,13 @@ class SkeletonCLR_Processor(PT_Processor):
 
         self.epoch_info['train_mean_loss']= np.mean(loss_value)
         self.train_writer.add_scalar('loss', self.epoch_info['train_mean_loss'], epoch)
-
+        
+        if epoch <= self.arg.sup_epoch:
+            alpha = 0
+            print(f"Scaling of Loss Functions -> Unsupervised: {1 - alpha:.4f}, Supervised: {alpha:.4f}")
+        else:
+            print(f"Scaling of Loss Functions -> Unsupervised: {1 - alpha:.4f}, Supervised: {alpha:.4f}")
+        
         # Log epoch-level mean loss
         wandb.log({
             "train_mean_loss": np.mean(loss_value),

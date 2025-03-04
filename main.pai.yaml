@@ -30,9 +30,12 @@ taskRoles:
       # WandB API key
       - export WANDB_API_KEY=8f7dc3eab0cb8691f587c5f508a1be5a585eddc4
       
+      - wandb enabled
+      #- wandb disabled
+      
       # SkeletonCLR
-      - python3 main.py pretrain_skeletonclr --config config/SkeletonCLR/skeletonclr_xview.yaml
-      #- python3 main.py linear_evaluation --config config/linear_eval/linear_eval_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/epoch300_model.pt
+      #- python3 main.py pretrain_skeletonclr --config config/SkeletonCLR/skeletonclr_xview.yaml
+      - python3 main.py linear_evaluation --config config/linear_eval/linear_eval_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/epoch300_model.pt
       
       - echo "Done"
 extras:

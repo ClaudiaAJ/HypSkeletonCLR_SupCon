@@ -78,10 +78,10 @@ class SupConLoss(nn.Module):
         # anchor_feature.unsqueeze(1) shape: [n_views, 1, feature_dim]
         # contrast_feature.unsqueeze(0) shape: [1, n_views, feature_dim]
         # hyp_dist shape: [n_views, n_views]
-        #hyp_dist = poincare_ball.dist(anchor_feature.unsqueeze(1), contrast_feature.unsqueeze(0))
+        hyp_dist = -poincare_ball.dist(anchor_feature.unsqueeze(1), contrast_feature.unsqueeze(0))
         
         # hyp_dist shape: [n_views]
-        hyp_dist = -poincare_ball.dist(anchor_feature, contrast_feature)
+        #hyp_dist = -poincare_ball.dist(anchor_feature, contrast_feature)
 
         anchor_dot_contrast = torch.div(hyp_dist, self.temperature)
         #anchor_dot_contrast = torch.div(

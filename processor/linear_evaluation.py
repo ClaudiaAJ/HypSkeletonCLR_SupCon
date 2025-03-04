@@ -26,18 +26,27 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR
 import wandb
 
 from sklearn.decomposition import PCA, TruncatedSVD
+from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-def visualize_latent_space(features, labels, method='pca', n_components=2, random_state=42, save_path=None):
+def visualize_latent_space(features, labels, method='pca', n_components=2, random_state=42, save_path=None, selected_labels=None):
 
     features = np.concatenate(features, axis=0)
     labels = np.concatenate(labels, axis=0)
+
+    # Filter features and labels for selected actions
+    if selected_labels is not None:
+        mask = np.isin(labels, selected_labels)
+        features = features[mask]
+        labels = labels[mask]
 
     if method == 'pca':
         reducer = PCA(n_components=n_components, random_state=random_state)
     elif method == 'svd':
         reducer = TruncatedSVD(n_components=n_components, random_state=random_state)
+    elif method == 'tsne':
+        reducer = TSNE(n_components=n_components, random_state=random_state)
     else:
         raise ValueError("Unsupported method. Choose either 'pca' or 'svd'.")
 
@@ -45,13 +54,13 @@ def visualize_latent_space(features, labels, method='pca', n_components=2, rando
 
     # Create a scatter plot
     plt.figure(figsize=(8, 6))
-    palette = sns.color_palette("hsv", len(np.unique(labels)))
+    palette = sns.color_palette("tab10", len(np.unique(labels)))
     sns.scatterplot(
         x=reduced_features[:, 0],
         y=reduced_features[:, 1],
         hue=labels,
         palette=palette,
-        legend=False,
+        legend=True,
         alpha=0.7
     )
     if method == 'pca':
@@ -63,6 +72,11 @@ def visualize_latent_space(features, labels, method='pca', n_components=2, rando
         plt.title(f"SVD of Model Output Features")
         plt.xlabel("Singular Value 1")
         plt.ylabel("Singular Value 2")
+    
+    elif method == 'tsne':
+        plt.title(f"t-SNE of Model Output Features")
+        plt.xlabel("t-SNE 1")
+        plt.ylabel("t-SNE 2")
     # Save the plot if a save path is provided
     if save_path:
         plt.savefig(save_path, format='png', dpi=300, bbox_inches='tight')
@@ -91,7 +105,7 @@ class LE_Processor(Processor):
             project="HypSkeletonCLR_SupCon",
             config=vars(self.arg),  # Pass all arguments to wandb config
         )
-
+        
         self.best_result = 0
         self.all_features = []
         self.all_labels = []
@@ -145,7 +159,7 @@ class LE_Processor(Processor):
         
         '''
         # Initialize CosineAnnealingLR after a warmup phase
-        warmup_epochs = 15
+        warmup_epochs = 0
         num_cycles = 1
         
         # Compute the duration of each cycle
@@ -191,7 +205,7 @@ class LE_Processor(Processor):
             self.lr_scheduler = LambdaLR(self.optimizer, lr_lambda)
         else:
             self.lr_scheduler = None  # No scheduler if num_epoch is not defined
-
+        
     def adjust_lr_scheduler(self):
         # Using CosineAnnealingLR scheduler with warmup
         if self.lr_scheduler:
@@ -257,15 +271,21 @@ class LE_Processor(Processor):
             if self.global_step % 100 == 0:
                 # Log metrics to wandb
                 wandb.log({
-                    "train_loss": loss.data.item(),
-                    "learning_rate": self.lr,
-                    "epoch": epoch},
+                    "train_loss_le": loss.data.item(),
+                    "learning_rate_le": self.lr,
+                    "epoch_le": epoch},
                     step=self.global_step)
-
+                
             self.train_log_writer(epoch)
 
         self.epoch_info['train_mean_loss']= np.mean(loss_value)
         self.train_writer.add_scalar('loss', self.epoch_info['train_mean_loss'], epoch)
+
+        wandb.log({
+                    "train_mean_loss_le": np.mean(loss_value),
+                    "epoch_le": epoch},
+                    step=self.global_step)
+        
         self.show_epoch_info()
 
     def test(self, epoch):
@@ -310,20 +330,23 @@ class LE_Processor(Processor):
         self.show_best(1)
 
         wandb.log({
-            "eval_loss": np.mean(loss_value),
             "best_accuracy": self.best_result,
-            "epoch": epoch},
+            "eval_mean_loss": np.mean(loss_value),
+            "epoch_le": epoch},
             step=self.global_step)
-
+        
         self.eval_log_writer(epoch)
 
-        if epoch == 100:
+        if epoch == 100: # to-do: take last eval epoch from config
             print("Last epoch reached! Generating plots with model output features...")
             save_path_svd = f"latent_space_svd.png"
             save_path_pca = f"latent_space_pca.png"
+            save_path_tsne = f"latent_space_tsne.png"
 
-            visualize_latent_space(self.all_features, self.all_labels, method='svd', save_path=save_path_svd)
-            visualize_latent_space(self.all_features, self.all_labels, method='pca', save_path=save_path_pca)
+            selected_labels = [0, 5, 11, 17, 23, 29, 35, 41, 47, 53]
+            visualize_latent_space(self.all_features, self.all_labels, method='svd', save_path=save_path_svd, selected_labels=selected_labels)
+            visualize_latent_space(self.all_features, self.all_labels, method='pca', save_path=save_path_pca, selected_labels=selected_labels)
+            visualize_latent_space(self.all_features, self.all_labels, method='tsne', save_path=save_path_tsne, selected_labels=selected_labels)
 
     @staticmethod
     def get_parser(add_help=False):
