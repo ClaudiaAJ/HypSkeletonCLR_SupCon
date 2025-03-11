@@ -138,7 +138,7 @@ class SkeletonCLR(nn.Module):
         # HYP: Supervised Contrastive Learning
         # Combine q (query) and k (key) as two views of the same image
         features = torch.cat([q.unsqueeze(1), k.unsqueeze(1)], dim=1)  # features shape: [batch_size, n_views, feature_dim], with n_views=2 (q and k)
-        
+
         # dequeue and enqueue
         self._dequeue_and_enqueue(k)
 

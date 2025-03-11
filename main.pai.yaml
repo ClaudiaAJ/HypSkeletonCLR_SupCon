@@ -35,7 +35,7 @@ taskRoles:
       
       # SkeletonCLR
       #- python3 main.py pretrain_skeletonclr --config config/SkeletonCLR/skeletonclr_xview.yaml
-      - python3 main.py linear_evaluation --config config/linear_eval/linear_eval_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/epoch300_model.pt
+      - python3 main.py linear_evaluation --config config/linear_eval/linear_eval_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/with_loaded_weights/epoch150_model.pt
       
       - echo "Done"
 extras:

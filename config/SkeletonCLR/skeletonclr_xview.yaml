@@ -1,4 +1,4 @@
-work_dir: work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150
+work_dir: work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/with_loaded_weights
 
 weights: work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/2025-02-18_11_21_59/epoch150_model.pt
 ignore_weights: [encoder_q.fc, encoder_q_motion.fc, encoder_q_bone.fc, encoder_k, encoder_k_motion, encoder_k_bone, queue, queue_motion, queue_bone]
@@ -38,13 +38,13 @@ nesterov: True
 weight_decay: 1e-4
 base_lr: 0.01
 optimizer: SGD
-step: [125] #[250]
+step: [250]
 
 # training
 device: [0]
 batch_size: 128
 test_batch_size: 128
-num_epoch: 150 # 300
+num_epoch: 150
 start_epoch: 0
 
 view: 'joint'

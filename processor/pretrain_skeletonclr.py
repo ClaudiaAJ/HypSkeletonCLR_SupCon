@@ -46,6 +46,7 @@ class SkeletonCLR_Processor(PT_Processor):
         })
 
         self.criterion = SupConLoss(temperature=self.arg.temperature, curvature=self.arg.curvature)
+        #self.criterion = SupConLoss(temperature=self.arg.temperature)
 
     def train(self, epoch):
         self.model.train()
@@ -114,7 +115,7 @@ class SkeletonCLR_Processor(PT_Processor):
                 
                 # new loss function: scaled sum of unsupervised and supervised loss
                 #alpha = (epoch - self.arg.sup_epoch) / (self.arg.num_epoch - self.arg.sup_epoch)
-                alpha = 1
+                alpha = 0.75 
                 loss = (1 - alpha) * loss_unsup + alpha * loss_sup
 
             # backward

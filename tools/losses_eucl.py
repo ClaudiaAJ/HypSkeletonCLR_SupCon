@@ -7,19 +7,16 @@ from __future__ import print_function
 import torch
 import torch.nn as nn
 
-import geoopt as gt
-
 
 class SupConLoss(nn.Module):
     """Supervised Contrastive Learning: https://arxiv.org/pdf/2004.11362.pdf.
     It also supports the unsupervised contrastive loss in SimCLR"""
     def __init__(self, temperature=0.07, contrast_mode='all',
-                 base_temperature=0.07, curvature=1.0):
+                 base_temperature=0.07):
         super(SupConLoss, self).__init__()
         self.temperature = temperature
         self.contrast_mode = contrast_mode
         self.base_temperature = base_temperature
-        self.curvature = curvature
 
     def forward(self, features, labels=None, mask=None):
         """Compute loss for model. If both `labels` and `mask` are None,
@@ -58,38 +55,22 @@ class SupConLoss(nn.Module):
             mask = mask.float().to(device)
 
         contrast_count = features.shape[1]
-        # contrast_feature shape: [batch_size * n_views, feature_dim] (n_views=2)
         contrast_feature = torch.cat(torch.unbind(features, dim=1), dim=0)
         if self.contrast_mode == 'one':
-            # anchor_feature shape: [batch_size * n_views, feature_dim] (n_views=2)
             anchor_feature = features[:, 0]
             anchor_count = 1
         elif self.contrast_mode == 'all':
-            # anchor_feature shape: [batch_size * n_views, feature_dim] (n_views=2)
             anchor_feature = contrast_feature
             anchor_count = contrast_count
         else:
             raise ValueError('Unknown mode: {}'.format(self.contrast_mode))
 
         # compute logits
-        # HYP: Compute all pairwise (negative) hyperbolic distances between anchor_feature and contrast_feature
-        poincare_ball = gt.PoincareBall(self.curvature)
-
-        # anchor_feature.unsqueeze(1) shape: [batch_size * n_views, 1, feature_dim]
-        # contrast_feature.unsqueeze(0) shape: [1, batch_size * n_views, feature_dim]
-        # hyp_dist shape: [batch_size * n_views, batch_size * n_views]
-        hyp_dist = -poincare_ball.dist(anchor_feature.unsqueeze(1), contrast_feature.unsqueeze(0))
-        
-        # hyp_dist shape: [batch_size * n_views]
-        #hyp_dist = -poincare_ball.dist(anchor_feature, contrast_feature)
-
-        anchor_dot_contrast = torch.div(hyp_dist, self.temperature)
-        #anchor_dot_contrast = torch.div(
-        #    torch.matmul(anchor_feature, contrast_feature.T),
-        #    self.temperature)
-
+        anchor_dot_contrast = torch.div(
+            torch.matmul(anchor_feature, contrast_feature.T),
+            self.temperature)
         # for numerical stability
-        logits_max, _ = torch.max(anchor_dot_contrast, dim=0, keepdim=True)
+        logits_max, _ = torch.max(anchor_dot_contrast, dim=1, keepdim=True)
         logits = anchor_dot_contrast - logits_max.detach()
 
         # tile mask

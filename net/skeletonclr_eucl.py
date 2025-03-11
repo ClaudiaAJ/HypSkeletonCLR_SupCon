@@ -122,8 +122,11 @@ class SkeletonCLR(nn.Module):
         # labels: positive key indicators
         labels = torch.zeros(logits.shape[0], dtype=torch.long).cuda()
 
+        #features = torch.cat([q.unsqueeze(1), k.unsqueeze(1)], dim=1)
+        features = q.unsqueeze(1)
+
         # dequeue and enqueue
         self._dequeue_and_enqueue(k)
 
-        return logits, labels
+        return logits, labels, features
         
