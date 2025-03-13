@@ -15,7 +15,7 @@ class SkeletonCLR(nn.Module):
                  momentum=0.999, Temperature=0.07, mlp=True, in_channels=3, hidden_channels=64,
                  hidden_dim=256, num_class=60, dropout=0.5,
                  graph_args={'layout': 'ntu-rgb+d', 'strategy': 'spatial'},
-                 edge_importance_weighting=True, **kwargs):
+                 edge_importance_weighting=True, curvature=1.0, **kwargs):
         """
         K: queue size; number of negative keys (default: 32768)
         m: momentum of updating key encoder (default: 0.999)
@@ -36,6 +36,7 @@ class SkeletonCLR(nn.Module):
             self.K = queue_size
             self.m = momentum
             self.T = Temperature
+            self.c = curvature
 
             self.encoder_q = base_encoder(in_channels=in_channels, hidden_channels=hidden_channels,
                                           hidden_dim=hidden_dim, num_class=feature_dim,
@@ -136,8 +137,12 @@ class SkeletonCLR(nn.Module):
         # labels: positive key indicators
         labels = torch.zeros(logits.shape[0], dtype=torch.long).cuda()
 
+        # HYP: Supervised Contrastive Learning
+        # Combine q (query) and k (key) as two views of the same image
+        features = torch.cat([q.unsqueeze(1), k.unsqueeze(1)], dim=1)  # features shape: [batch_size, n_views, feature_dim], with n_views=2 (q and k)
+
         # dequeue and enqueue
         self._dequeue_and_enqueue(k)
 
-        return logits, labels
+        return logits, labels, features
         

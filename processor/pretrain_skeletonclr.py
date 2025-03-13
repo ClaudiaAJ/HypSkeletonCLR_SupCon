@@ -53,9 +53,18 @@ class SkeletonCLR_Processor(PT_Processor):
         self.adjust_lr()
         loader = self.data_loader['train']
         loss_value = []
+        '''loss_sup_value = []
+        loss_unsup_value = []'''
 
         wandb.watch(self.model)
         # wandb.watch(self.model, log="all") # for logging of parameters panels
+
+        label_mapping = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 1, 8: 1, 9: 0,
+                        10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 3, 16: 3, 17: 0, 18: 0, 19: 0,
+                        20: 0, 21: 3, 22: 0, 23: 1, 24: 0, 25: 1, 26: 1, 27: 0, 28: 0, 29: 0,
+                        30: 0, 31: 0, 32: 0, 33: 0, 34: 2, 35: 2, 36: 0, 37: 0, 38: 0, 39: 0,
+                        40: 2, 41: 3, 42: 3, 43: 3, 44: 3, 45: 3, 46: 3, 47: 3, 48: 0, 49: 0,
+                        50: 1, 51: 0, 52: 0, 53: 0, 54: 3, 55: 0, 56: 0, 57: 0, 58: 1, 59: 1}
 
         for [data1, data2], label in loader:
             self.global_step += 1
@@ -93,8 +102,8 @@ class SkeletonCLR_Processor(PT_Processor):
                 raise ValueError
 
             # forward
-            #if epoch <= self.arg.sup_epoch:
-            if epoch < self.arg.sup_epoch:
+            if epoch <= self.arg.sup_epoch:
+            #if epoch < self.arg.sup_epoch:
                 output, target, _ = self.model(data1, data2)
                 if hasattr(self.model, 'module'):
                     self.model.module.update_ptr(output.size(0))
@@ -110,23 +119,41 @@ class SkeletonCLR_Processor(PT_Processor):
                 
                 loss_unsup = self.loss(output, target)
                 
-                label_sup = label
+                try:
+                    label_sup = torch.tensor([label_mapping[int(l)] for l in label])
+                except NameError:
+                    label_sup = label
+                    
                 loss_sup = self.criterion(features_sup, label_sup)
                 
                 # new loss function: scaled sum of unsupervised and supervised loss
                 #alpha = (epoch - self.arg.sup_epoch) / (self.arg.num_epoch - self.arg.sup_epoch)
-                alpha = 0.75 
+                alpha = 1.0
                 loss = (1 - alpha) * loss_unsup + alpha * loss_sup
 
             # backward
             self.optimizer.zero_grad()
             loss.backward()
+            
+            '''# For plotting separate losses:
+            if 0 < alpha < 1:
+                loss_sup.backward()
+                loss_unsup.backward()'''
+
             self.optimizer.step()
 
             # statistics
             self.iter_info['loss'] = loss.data.item()
+            '''# For plotting separate losses:
+            if 0 < alpha < 1:
+                self.iter_info['loss_sup'] = loss_sup.data.item()
+                self.iter_info['loss_unsup'] = loss_unsup.data.item()'''
             self.iter_info['lr'] = '{:.6f}'.format(self.lr)
             loss_value.append(self.iter_info['loss'])
+            '''# For plotting separate losses:
+            if 0 < alpha < 1:
+                loss_sup_value.append(self.iter_info['loss_sup'])
+                loss_unsup_value.append(self.iter_info['loss_unsup'])'''
             self.show_iter_info()
             self.meta_info['iter'] += 1
 
@@ -134,6 +161,8 @@ class SkeletonCLR_Processor(PT_Processor):
                 # Log metrics to wandb
                 wandb.log({
                     "loss": loss.data.item(),
+                    #"supervised_loss": loss_sup.data.item(),
+                    #"unsupervised_loss": loss_unsup.data.item(),
                     "learning_rate": self.lr,
                     "epoch": epoch},
                     step=self.global_step)
@@ -142,7 +171,11 @@ class SkeletonCLR_Processor(PT_Processor):
 
         self.epoch_info['train_mean_loss']= np.mean(loss_value)
         self.train_writer.add_scalar('loss', self.epoch_info['train_mean_loss'], epoch)
-        
+        ''' # For plotting separate losses:
+        if 0 < alpha < 1:
+            self.epoch_info['train_mean_loss_sup']= np.mean(loss_sup_value)
+            self.epoch_info['train_mean_loss_unsup']= np.mean(loss_unsup_value)'''
+
         if epoch <= self.arg.sup_epoch:
             alpha = 0
             print(f"Scaling of Loss Functions -> Unsupervised: {1 - alpha:.4f}, Supervised: {alpha:.4f}")
@@ -152,6 +185,8 @@ class SkeletonCLR_Processor(PT_Processor):
         # Log epoch-level mean loss
         wandb.log({
             "train_mean_loss": np.mean(loss_value),
+            #"train_mean_loss_supervised": np.mean(loss_sup_value),
+            #"train_mean_loss_unsupervised": np.mean(loss_unsup_value),
             "learning_rate": self.lr,
             "epoch": epoch},
             step=self.global_step)
