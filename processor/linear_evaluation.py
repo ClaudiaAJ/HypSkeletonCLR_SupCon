@@ -30,7 +30,7 @@ from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-def visualize_latent_space(features, labels, method='pca', n_components=2, random_state=42, save_path=None, selected_labels=None):
+'''def visualize_latent_space(features, labels, method='pca', n_components=2, random_state=42, save_path=None, selected_labels=None):
 
     features = np.concatenate(features, axis=0)
     labels = np.concatenate(labels, axis=0)
@@ -82,7 +82,7 @@ def visualize_latent_space(features, labels, method='pca', n_components=2, rando
         plt.savefig(save_path, format='png', dpi=300, bbox_inches='tight')
         print(f"Plot saved to {save_path}")
     
-    plt.show()
+    plt.show()'''
 
 def weights_init(m):
     classname = m.__class__.__name__
@@ -340,7 +340,7 @@ class LE_Processor(Processor):
         
         self.eval_log_writer(epoch)
 
-        if epoch == 5 or epoch == 50 or epoch == 100: # to-do: take last eval epoch from config
+        '''if epoch == 5 or epoch == 50 or epoch == 100: # to-do: take last eval epoch from config
             print("Last epoch reached! Generating plots with model output features...")
             save_path_svd = f"latent_space_svd_{epoch}.png"
             save_path_pca = f"latent_space_pca_{epoch}.png"
@@ -350,7 +350,7 @@ class LE_Processor(Processor):
             selected_labels = [0, 5, 11, 17, 23, 26, 34, 35, 43, 54]
             visualize_latent_space(self.all_features, self.all_labels, method='svd', save_path=save_path_svd, selected_labels=selected_labels)
             visualize_latent_space(self.all_features, self.all_labels, method='pca', save_path=save_path_pca, selected_labels=selected_labels)
-            visualize_latent_space(self.all_features, self.all_labels, method='tsne', save_path=save_path_tsne, selected_labels=selected_labels)
+            visualize_latent_space(self.all_features, self.all_labels, method='tsne', save_path=save_path_tsne, selected_labels=selected_labels)'''
 
     @staticmethod
     def get_parser(add_help=False):

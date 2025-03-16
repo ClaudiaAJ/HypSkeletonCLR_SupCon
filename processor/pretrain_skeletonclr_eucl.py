@@ -21,7 +21,7 @@ from torchlight import import_class
 from .processor import Processor
 from .pretrain import PT_Processor
 
-from tools.losses import SupConLoss
+from tools.losses_eucl import SupConLoss
 
 import wandb
 
@@ -42,10 +42,9 @@ class SkeletonCLR_Processor(PT_Processor):
             "num_epochs": self.arg.num_epoch,
             "sup_epoch": self.arg.sup_epoch,
             "temperature": self.arg.temperature,
-            "curvature": self.arg.curvature,
         })
 
-        self.criterion = SupConLoss(temperature=self.arg.temperature, curvature=self.arg.curvature)
+        self.criterion = SupConLoss(temperature=self.arg.temperature)
 
     def train(self, epoch):
         self.model.train()
@@ -125,7 +124,7 @@ class SkeletonCLR_Processor(PT_Processor):
                 
                 # new loss function: scaled sum of unsupervised and supervised loss
                 #alpha = (epoch - self.arg.sup_epoch) / (self.arg.num_epoch - self.arg.sup_epoch)
-                alpha = 0
+                alpha = 0.25
                 loss = (1 - alpha) * loss_unsup + alpha * loss_sup
 
             # backward
@@ -189,7 +188,6 @@ class SkeletonCLR_Processor(PT_Processor):
         parser.add_argument('--view', type=str, default='joint', help='the view of input')
         parser.add_argument('--sup_epoch', type=int, default=1e6, help='the starting epoch of supervised training')
         parser.add_argument('--temperature', type=float, default=0.07, help='the temperature used in supervised training loss')
-        parser.add_argument('--curvature', type=float, default=1.0, help='the curvature of the Poincaré ball')
         
         # endregion yapf: enable
 

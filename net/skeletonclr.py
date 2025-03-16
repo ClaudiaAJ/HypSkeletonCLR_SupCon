@@ -105,6 +105,7 @@ class SkeletonCLR(nn.Module):
 
         # compute query features
         q = self.encoder_q(im_q)  # queries shape: [batch_size, feature_dim]
+        q = F.normalize(q, dim=1)
         # HYP: Embed in the Poincaré ball
         q = poincare_ball.expmap0(q) # shape: [batch_size, feature_dim]
 
@@ -113,6 +114,7 @@ class SkeletonCLR(nn.Module):
             self._momentum_update_key_encoder()  # update the key encoder
 
             k = self.encoder_k(im_k)  # keys shape: [batch_size, feature_dim]
+            k = F.normalize(k, dim=1)
             # HYP: Embed in the Poincaré ball
             k = poincare_ball.expmap0(k) # shape: [batch_size, feature_dim]
 
