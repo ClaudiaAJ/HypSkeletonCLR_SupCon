@@ -26,10 +26,6 @@ from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-import geoopt as gt
-
-#from hyperbolicTSNE import HyperbolicTSNE
-
 def visualize_latent_space(features, labels, method='pca', n_components=2, random_state=42, save_path=None, selected_labels=None):
 
     features = np.concatenate(features, axis=0)
@@ -89,8 +85,6 @@ class SkeletonCLR_Plotting(PT_Processor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.poincare_ball = gt.PoincareBall(self.arg.curvature)
-
         self.all_features = []
         self.all_labels = []
 
@@ -108,7 +102,6 @@ class SkeletonCLR_Plotting(PT_Processor):
             with torch.no_grad():
                 latent_features = self.model.encoder_q(data)
                 latent_features = F.normalize(latent_features, dim=1)
-                latent_features = self.poincare_ball.expmap0(latent_features)
                 features.append(latent_features.cpu().numpy())
             
             label_frag.append(label.data.cpu().numpy())
@@ -121,9 +114,9 @@ class SkeletonCLR_Plotting(PT_Processor):
         self.all_labels.append(self.label)
 
         print("Generating plots with model output features...")
-        save_path_svd = f"latent_space_svd.png"
-        save_path_pca = f"latent_space_pca.png"
-        save_path_tsne = f"latent_space_tsne.png"
+        save_path_svd = f"latent_space_svd_eucl.png"
+        save_path_pca = f"latent_space_pca_eucl.png"
+        save_path_tsne = f"latent_space_tsne_eucl.png"
 
         #selected_labels = [0, 5, 11, 17, 23, 29, 35, 41, 47, 53]
         selected_labels = [0, 5, 11, 17, 23, 26, 34, 35, 43, 54]

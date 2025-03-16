@@ -27,16 +27,27 @@ taskRoles:
       - echo "Start"
       # This is the path where the vscode extension will upload the files specified in the .vscode/settings.json config.
       - cd /mnt/scratch/HypSkeletonCLR_SupCon
+
       # WandB API key
       - export WANDB_API_KEY=8f7dc3eab0cb8691f587c5f508a1be5a585eddc4
+      - wandb disabled # enabled/disabled
+
+      # SkeletonCLR Pretraining
+      - python3 main.py pretrain_skeletonclr --config config/SkeletonCLR/skeletonclr_xview.yaml
+      #- python3 main.py pretrain_skeletonclr_eucl --config config/SkeletonCLR/skeletonclr_eucl_xview.yaml
+
+      # SkeletonCLR Plotting
+      #- python3 main.py plot_skeletonclr --config config/plotting/plotting_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/supervised/epoch300_model.pt
+      #- python3 main.py plot_skeletonclr_eucl --config config/plotting/plotting_skeletonclr_eucl_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/eucl_supervised/epoch300_model.pt
       
-      - wandb enabled
-      #- wandb disabled
+      # Packages for hyperbolic tSNE
+      #- pip install hnswlib==0.7.0
+      #- pip install cython==0.29.33
+      #- pip install --no-cache-dir -e tools/hyperbolic-tsne
       
-      # SkeletonCLR
-      #- python3 main.py pretrain_skeletonclr --config config/SkeletonCLR/skeletonclr_xview.yaml
-      - python3 main.py linear_evaluation --config config/linear_eval/linear_eval_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/with_loaded_weights/epoch150_model.pt
-      
+      # SkeletonCLR Linear Evaluation
+      #- python3 main.py linear_evaluation --config config/linear_eval/linear_eval_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/norm_unsupervised/epoch200_model.pt
+
       - echo "Done"
 extras:
   com.microsoft.pai.runtimeplugin:
