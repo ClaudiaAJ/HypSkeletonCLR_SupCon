@@ -105,7 +105,7 @@ class SkeletonCLR(nn.Module):
 
         # compute query features
         q = self.encoder_q(im_q)  # queries shape: [batch_size, feature_dim]
-        q = F.normalize(q, dim=1)
+        #q = F.normalize(q, dim=1)
         # HYP: Embed in the Poincaré ball
         q = poincare_ball.expmap0(q) # shape: [batch_size, feature_dim]
 
@@ -114,8 +114,10 @@ class SkeletonCLR(nn.Module):
             self._momentum_update_key_encoder()  # update the key encoder
 
             k = self.encoder_k(im_k)  # keys shape: [batch_size, feature_dim]
-            k = F.normalize(k, dim=1)
+            #k = F.normalize(k, dim=1)
             # HYP: Embed in the Poincaré ball
+            k_eucl = k.clone().detach()
+            k_eucl = F.normalize(k_eucl, dim=1)
             k = poincare_ball.expmap0(k) # shape: [batch_size, feature_dim]
 
         # compute logits
@@ -123,10 +125,11 @@ class SkeletonCLR(nn.Module):
         l_pos = -poincare_ball.dist(q, k).unsqueeze(-1) 
 
         # negative logits shape: [batch_size, queue_size]
-        # HYP: Transpose self.queue to match dimensions for pairwise comparison [batch_size, queue_size]
+        # HYP: Transpose self.queue to match dimensions for pairwise comparison [feature_dim, queue_size]
         # Expand q and queue to compute pairwise distances
         # Compute all pairwise (negative) hyperbolic distances between q and queue
-        l_neg = -poincare_ball.dist(q.unsqueeze(1), self.queue.clone().detach().T.unsqueeze(0)) 
+        #l_neg = -poincare_ball.dist(q.unsqueeze(1), self.queue.clone().detach().T.unsqueeze(0)) # yields same output as line below
+        l_neg = -poincare_ball.dist(q.unsqueeze(1), poincare_ball.expmap0(self.queue.clone().detach().T))
 
         # logits shape: [batch_size, 1+queue_size])
         logits = torch.cat([l_pos, l_neg], dim=1)
@@ -142,7 +145,7 @@ class SkeletonCLR(nn.Module):
         features = torch.cat([q.unsqueeze(1), k.unsqueeze(1)], dim=1)  # features shape: [batch_size, n_views, feature_dim], with n_views=2 (q and k)
 
         # dequeue and enqueue
-        self._dequeue_and_enqueue(k)
+        self._dequeue_and_enqueue(k_eucl)
 
         return logits, labels, features 
         

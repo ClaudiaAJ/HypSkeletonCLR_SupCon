@@ -30,23 +30,25 @@ taskRoles:
 
       # WandB API key
       - export WANDB_API_KEY=8f7dc3eab0cb8691f587c5f508a1be5a585eddc4
-      - wandb disabled # enabled/disabled
+      - wandb enabled # enabled/disabled
+
+      # Packages for hyperbolic tSNE
+      - cd tools/hyperbolic-tsne 
+      - pip install -r requirements.txt --no-warn-script-location
+      - python setup.py build_ext --inplace
+      - pip install . --no-warn-script-location
+      - cd ../..
 
       # SkeletonCLR Pretraining
-      - python3 main.py pretrain_skeletonclr --config config/SkeletonCLR/skeletonclr_xview.yaml
+      #- python3 main.py pretrain_skeletonclr --config config/SkeletonCLR/skeletonclr_xview.yaml
       #- python3 main.py pretrain_skeletonclr_eucl --config config/SkeletonCLR/skeletonclr_eucl_xview.yaml
 
       # SkeletonCLR Plotting
-      #- python3 main.py plot_skeletonclr --config config/plotting/plotting_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/supervised/epoch300_model.pt
+      - python3 main.py plot_skeletonclr --config config/plotting/plotting_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/sequential_5_clusters/epoch150_model.pt
       #- python3 main.py plot_skeletonclr_eucl --config config/plotting/plotting_skeletonclr_eucl_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/eucl_supervised/epoch300_model.pt
       
-      # Packages for hyperbolic tSNE
-      #- pip install hnswlib==0.7.0
-      #- pip install cython==0.29.33
-      #- pip install --no-cache-dir -e tools/hyperbolic-tsne
-      
       # SkeletonCLR Linear Evaluation
-      #- python3 main.py linear_evaluation --config config/linear_eval/linear_eval_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/norm_unsupervised/epoch200_model.pt
+      #- python3 main.py linear_evaluation --config config/linear_eval/linear_eval_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/k_eucl/epoch300_model.pt
 
       - echo "Done"
 extras:

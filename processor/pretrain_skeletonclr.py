@@ -25,6 +25,8 @@ from tools.losses import SupConLoss
 
 import wandb
 
+import geoopt as gt
+
 class SkeletonCLR_Processor(PT_Processor):
     """
         Processor for SkeletonCLR Pretraining.
@@ -53,22 +55,35 @@ class SkeletonCLR_Processor(PT_Processor):
         loader = self.data_loader['train']
         loss_value = []
 
+        #poincare_ball = gt.PoincareBall(self.arg.curvature)
+
         wandb.watch(self.model)
         # wandb.watch(self.model, log="all") # for logging of parameters panels
 
-        label_mapping = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 1, 8: 1, 9: 0,
+        '''label_mapping = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 1, 8: 1, 9: 0,
                         10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 3, 16: 3, 17: 0, 18: 0, 19: 0,
                         20: 0, 21: 3, 22: 0, 23: 1, 24: 0, 25: 1, 26: 1, 27: 0, 28: 0, 29: 0,
                         30: 0, 31: 0, 32: 0, 33: 0, 34: 2, 35: 2, 36: 0, 37: 0, 38: 0, 39: 0,
                         40: 2, 41: 3, 42: 3, 43: 3, 44: 3, 45: 3, 46: 3, 47: 3, 48: 0, 49: 0,
-                        50: 1, 51: 0, 52: 0, 53: 0, 54: 3, 55: 0, 56: 0, 57: 0, 58: 1, 59: 1}
+                        50: 1, 51: 0, 52: 0, 53: 0, 54: 3, 55: 0, 56: 0, 57: 0, 58: 1, 59: 1}'''
+        
+        label_mapping = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 0, 7: 1, 8: 2, 9: 3,
+                        10: 4, 11: 5, 12: 0, 13: 1, 14: 2, 15: 3, 16: 4, 17: 5, 18: 0, 19: 1,
+                        20: 2, 21: 3, 22: 4, 23: 5, 24: 0, 25: 1, 26: 2, 27: 3, 28: 4, 29: 5,
+                        30: 0, 31: 1, 32: 2, 33: 3, 34: 4, 35: 5, 36: 0, 37: 1, 38: 2, 39: 3,
+                        40: 4, 41: 5, 42: 0, 43: 1, 44: 2, 45: 3, 46: 4, 47: 5, 48: 0, 49: 1,
+                        50: 2, 51: 3, 52: 4, 53: 5, 54: 0, 55: 1, 56: 2, 57: 3, 58: 4, 59: 5}
 
         for [data1, data2], label in loader:
             self.global_step += 1
+
             # get data
             data1 = data1.float().to(self.dev, non_blocking=True)
             data2 = data2.float().to(self.dev, non_blocking=True)
             label = label.long().to(self.dev, non_blocking=True)
+
+            #data1 = poincare_ball.expmap0(data1)
+            #data2 = poincare_ball.expmap0(data2)
 
             if self.arg.view == 'joint':
                 pass
@@ -99,8 +114,8 @@ class SkeletonCLR_Processor(PT_Processor):
                 raise ValueError
 
             # forward
-            #if epoch <= self.arg.sup_epoch:
-            if epoch < self.arg.sup_epoch:
+            if epoch <= self.arg.sup_epoch:
+            #if epoch < self.arg.sup_epoch:
                 output, target, _ = self.model(data1, data2)
                 if hasattr(self.model, 'module'):
                     self.model.module.update_ptr(output.size(0))
@@ -114,7 +129,7 @@ class SkeletonCLR_Processor(PT_Processor):
                 else:
                     self.model.update_ptr(output.size(0))
                 
-                loss_unsup = self.loss(output, target)
+                #loss_unsup = self.loss(output, target)
                 
                 try:
                     label_sup = torch.tensor([label_mapping[int(l)] for l in label])
@@ -125,8 +140,9 @@ class SkeletonCLR_Processor(PT_Processor):
                 
                 # new loss function: scaled sum of unsupervised and supervised loss
                 #alpha = (epoch - self.arg.sup_epoch) / (self.arg.num_epoch - self.arg.sup_epoch)
-                alpha = 1
-                loss = (1 - alpha) * loss_unsup + alpha * loss_sup
+                alpha = 1.0
+                #loss = (1 - alpha) * loss_unsup + alpha * loss_sup
+                loss = loss_sup
 
             # backward
             self.optimizer.zero_grad()
@@ -144,8 +160,8 @@ class SkeletonCLR_Processor(PT_Processor):
                 # Log metrics to wandb
                 wandb.log({
                     "loss": loss.data.item(),
-                    "supervised_loss": loss_sup.data.item(),
-                    "unsupervised_loss": loss_unsup.data.item(),
+                    #"supervised_loss": loss_sup.data.item(),
+                    #"unsupervised_loss": loss_unsup.data.item(),
                     "learning_rate": self.lr,
                     "epoch": epoch},
                     step=self.global_step)

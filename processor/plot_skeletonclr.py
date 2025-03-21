@@ -2,6 +2,9 @@
 # pylint: disable=W0201
 import sys
 import argparse
+
+from hyperbolicTSNE import SequentialOptimizer, initialization, HyperbolicTSNE
+
 import yaml
 import math
 import numpy as np
@@ -28,7 +31,6 @@ import seaborn as sns
 
 import geoopt as gt
 
-#from hyperbolicTSNE import HyperbolicTSNE
 
 def visualize_latent_space(features, labels, method='pca', n_components=2, random_state=42, save_path=None, selected_labels=None):
 
@@ -47,10 +49,17 @@ def visualize_latent_space(features, labels, method='pca', n_components=2, rando
         reducer = TruncatedSVD(n_components=n_components, random_state=random_state)
     elif method == 'tsne':
         reducer = TSNE(n_components=n_components, random_state=random_state)
-    else:
-        raise ValueError("Unsupported method. Choose either 'pca', 'svd' or 'tsne'.")
+    elif method == 'hyp_tsne':
+        #features_embedded = initialization(n_samples=features.shape[0], n_components=n_components,
+        #                            X=features, random_state=random_state, method="pca")
+        reducer = HyperbolicTSNE()
+        #features = np.array(features, dtype=object) 
 
+    #X = np.array([[0, 0, 0], [0, 1, 1], [1, 0, 1], [1, 1, 1]])
+    #print("X shape:", X.shape)
+    #features = X
     reduced_features = reducer.fit_transform(features)
+    #print("reduced features shape:", reduced_features.shape)
 
     # Create a scatter plot
     plt.figure(figsize=(8, 6))
@@ -75,6 +84,11 @@ def visualize_latent_space(features, labels, method='pca', n_components=2, rando
     
     elif method == 'tsne':
         plt.title(f"t-SNE of Model Output Features")
+        plt.xlabel("t-SNE 1")
+        plt.ylabel("t-SNE 2")
+
+    elif method == 'hyp_tsne':
+        plt.title(f"Hyperbolic t-SNE of Model Output Features")
         plt.xlabel("t-SNE 1")
         plt.ylabel("t-SNE 2")
 
@@ -107,7 +121,7 @@ class SkeletonCLR_Plotting(PT_Processor):
 
             with torch.no_grad():
                 latent_features = self.model.encoder_q(data)
-                latent_features = F.normalize(latent_features, dim=1)
+                #latent_features = F.normalize(latent_features, dim=1)
                 latent_features = self.poincare_ball.expmap0(latent_features)
                 features.append(latent_features.cpu().numpy())
             
@@ -124,12 +138,14 @@ class SkeletonCLR_Plotting(PT_Processor):
         save_path_svd = f"latent_space_svd.png"
         save_path_pca = f"latent_space_pca.png"
         save_path_tsne = f"latent_space_tsne.png"
+        save_path_hyp_tsne = f"latent_space_hyperbolic_tsne.png"
 
         #selected_labels = [0, 5, 11, 17, 23, 29, 35, 41, 47, 53]
         selected_labels = [0, 5, 11, 17, 23, 26, 34, 35, 43, 54]
         visualize_latent_space(self.all_features, self.all_labels, method='svd', save_path=save_path_svd, selected_labels=selected_labels)
         visualize_latent_space(self.all_features, self.all_labels, method='pca', save_path=save_path_pca, selected_labels=selected_labels)
         visualize_latent_space(self.all_features, self.all_labels, method='tsne', save_path=save_path_tsne, selected_labels=selected_labels)
+        visualize_latent_space(self.all_features, self.all_labels, method='hyp_tsne', save_path=save_path_hyp_tsne, selected_labels=selected_labels)
     
     @staticmethod
     def get_parser(add_help=False):
