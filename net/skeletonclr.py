@@ -117,7 +117,6 @@ class SkeletonCLR(nn.Module):
             #k = F.normalize(k, dim=1)
             # HYP: Embed in the Poincaré ball
             k_eucl = k.clone().detach()
-            k_eucl = F.normalize(k_eucl, dim=1)
             k = poincare_ball.expmap0(k) # shape: [batch_size, feature_dim]
 
         # compute logits
