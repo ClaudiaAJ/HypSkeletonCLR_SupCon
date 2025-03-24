@@ -274,11 +274,13 @@ def gradient_descent(
                 y = res.ravel()
             else:
                 inc = update * grad < 0.0
+                #inc = update * grad[-1] < 0.0
                 dec = np.invert(inc)
                 gains[inc] += 0.2
                 gains[dec] *= 0.8
                 np.clip(gains, min_gain, np.inf, out=gains)
                 grad *= gains
+                #grad[-1] *= gains
                 update = momentum * update - learning_rate * grad
                 # y = Model.exp_map(y, update * gradient_mask, n_samples)
                 res_exp = np.empty((n_samples, 2), dtype=ctypes.c_double)

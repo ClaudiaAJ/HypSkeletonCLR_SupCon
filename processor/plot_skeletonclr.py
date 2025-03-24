@@ -35,12 +35,14 @@ import geoopt as gt
 def visualize_latent_space(features, labels, method='pca', n_components=2, random_state=42, save_path=None, selected_labels=None):
 
     features = np.concatenate(features, axis=0)
+    print("Shape of features before mask:", features.shape)
     labels = np.concatenate(labels, axis=0)
 
     # Filter features and labels for selected actions
     if selected_labels is not None:
         mask = np.isin(labels, selected_labels)
         features = features[mask]
+        print("Shape of features after mask:", features.shape)
         labels = labels[mask]
     
     if method == 'pca':
@@ -50,21 +52,39 @@ def visualize_latent_space(features, labels, method='pca', n_components=2, rando
     elif method == 'tsne':
         reducer = TSNE(n_components=n_components, random_state=random_state)
     elif method == 'hyp_tsne':
-        #features_embedded = initialization(n_samples=features.shape[0], n_components=n_components,
-        #                            X=features, random_state=random_state, method="pca")
-        reducer = HyperbolicTSNE()
-        #features = np.array(features, dtype=object) 
-
-    #X = np.array([[0, 0, 0], [0, 1, 1], [1, 0, 1], [1, 1, 1]])
-    #print("X shape:", X.shape)
-    #features = X
+        opt_config = dict(
+                        learning_rate_main = 100,
+                        vanilla=False,  # if vanilla is set to true, regular gradient descent without any modifications is performed; for  vanilla set to false, the optimization makes use of momentum and gains
+                        momentum_ex=0.5,  # Set momentum during early exaggeration to 0.5
+                        momentum=0.8,  # Set momentum during non-exaggerated gradient descent to 0.8
+                        exact=False,  # To use the quad tree for acceleration (like Barnes-Hut in the Euclidean setting) or to evaluate the gradient exactly
+                        area_split=False,  # To build or not build the polar quad tree based on equal area splitting or - alternatively - on equal length splitting
+                        n_iter_check=10,  # Needed for early stopping criterion
+                        size_tol=0.999  # Size of the embedding to be used as early stopping criterion
+                    )
+        opt_params = SequentialOptimizer.sequence_poincare(**opt_config)
+        #features_embedded = initialization(
+        #                n_samples=features.shape[0],
+        #                n_components=2,
+        #                X=features,
+        #                random_state=random_state,
+        #                method="pca")
+        reducer = HyperbolicTSNE(
+                    #init=features_embedded, 
+                    n_components=2, 
+                    metric="euclidean", 
+                    #verbose=True, 
+                    #opt_method=SequentialOptimizer, 
+                    opt_params=opt_params
+                )
+    
     reduced_features = reducer.fit_transform(features)
-    #print("reduced features shape:", reduced_features.shape)
+    print("Shape of reduced features:", reduced_features.shape)
 
     # Create a scatter plot
     plt.figure(figsize=(8, 6))
     palette = sns.color_palette("tab10", len(np.unique(labels)))
-    sns.scatterplot(
+    ax = sns.scatterplot(
         x=reduced_features[:, 0],
         y=reduced_features[:, 1],
         hue=labels,
@@ -91,6 +111,9 @@ def visualize_latent_space(features, labels, method='pca', n_components=2, rando
         plt.title(f"Hyperbolic t-SNE of Model Output Features")
         plt.xlabel("t-SNE 1")
         plt.ylabel("t-SNE 2")
+        circle = plt.Circle((0, 0), radius=1, edgecolor="black", facecolor="none")
+        ax.add_patch(circle)
+        ax.axis("square")
 
     # Save the plot if a save path is provided
     if save_path:
@@ -121,8 +144,8 @@ class SkeletonCLR_Plotting(PT_Processor):
 
             with torch.no_grad():
                 latent_features = self.model.encoder_q(data)
-                #latent_features = F.normalize(latent_features, dim=1)
                 latent_features = self.poincare_ball.expmap0(latent_features)
+                latent_features = F.normalize(latent_features, dim=1)
                 features.append(latent_features.cpu().numpy())
             
             label_frag.append(label.data.cpu().numpy())
@@ -142,6 +165,7 @@ class SkeletonCLR_Plotting(PT_Processor):
 
         #selected_labels = [0, 5, 11, 17, 23, 29, 35, 41, 47, 53]
         selected_labels = [0, 5, 11, 17, 23, 26, 34, 35, 43, 54]
+        #selected_labels = [0, 6, 12, 18, 24, 30, 36, 42, 48, 54]
         visualize_latent_space(self.all_features, self.all_labels, method='svd', save_path=save_path_svd, selected_labels=selected_labels)
         visualize_latent_space(self.all_features, self.all_labels, method='pca', save_path=save_path_pca, selected_labels=selected_labels)
         visualize_latent_space(self.all_features, self.all_labels, method='tsne', save_path=save_path_tsne, selected_labels=selected_labels)

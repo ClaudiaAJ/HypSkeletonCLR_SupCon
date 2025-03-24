@@ -1,4 +1,4 @@
-work_dir: work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/k_eucl_norm
+work_dir: work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/clustered_labels_0
 
 #weights: work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/unsupervised/epoch150_model.pt
 #ignore_weights: [encoder_q.fc, encoder_q_motion.fc, encoder_q_bone.fc, encoder_k, encoder_k_motion, encoder_k_bone, queue, queue_motion, queue_bone]
@@ -50,7 +50,7 @@ start_epoch: 0
 view: 'joint'
 
 # supervised training
-sup_epoch: 301
+sup_epoch: 0
 temperature: 0.07
 curvature: 1.0
 

@@ -116,7 +116,7 @@ class SkeletonCLR(nn.Module):
             k = self.encoder_k(im_k)  # keys shape: [batch_size, feature_dim]
             #k = F.normalize(k, dim=1)
             # HYP: Embed in the Poincaré ball
-            k_eucl = k.clone().detach()
+            #k_eucl = k.clone().detach()
             k = poincare_ball.expmap0(k) # shape: [batch_size, feature_dim]
 
         # compute logits
@@ -144,7 +144,8 @@ class SkeletonCLR(nn.Module):
         features = torch.cat([q.unsqueeze(1), k.unsqueeze(1)], dim=1)  # features shape: [batch_size, n_views, feature_dim], with n_views=2 (q and k)
 
         # dequeue and enqueue
-        self._dequeue_and_enqueue(k_eucl)
+        #self._dequeue_and_enqueue(k_eucl)
+        self._dequeue_and_enqueue(k)
 
         return logits, labels, features 
         
