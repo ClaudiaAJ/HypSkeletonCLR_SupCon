@@ -25,12 +25,14 @@ from sklearn.decomposition import PCA, TruncatedSVD
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.preprocessing import normalize, StandardScaler
 
 def visualize_latent_space(features, labels, method='pca', n_components=2, random_state=42, save_path=None, selected_labels=None):
-
-    features = np.concatenate(features, axis=0)
-    labels = np.concatenate(labels, axis=0)
-
+    
+    print(f"Normalizing features for {method}...")
+    features = normalize(features, axis=1)
+    print(f"Features normalized.")
+    
     # Filter features and labels for selected actions
     if selected_labels is not None:
         mask = np.isin(labels, selected_labels)
@@ -77,7 +79,7 @@ def visualize_latent_space(features, labels, method='pca', n_components=2, rando
     # Save the plot if a save path is provided
     if save_path:
         plt.savefig(save_path, format='png', dpi=300, bbox_inches='tight')
-        print(f"Plot saved to {save_path}")
+        print(f"Plot saved as {save_path}.")
     
     plt.show()
 
@@ -92,7 +94,7 @@ class SkeletonCLR_Plotting(PT_Processor):
         self.model.train()
         loader = self.data_loader['train']
         features = []
-        label_frag = []
+        labels = []
 
         for data, label in loader:
             # get data
@@ -104,14 +106,10 @@ class SkeletonCLR_Plotting(PT_Processor):
                 latent_features = F.normalize(latent_features, dim=1)
                 features.append(latent_features.cpu().numpy())
             
-            label_frag.append(label.data.cpu().numpy())
-        
-        self.label = np.concatenate(label_frag)
+            labels.append(label.data.cpu().numpy())
 
-        features = np.concatenate(features)
-
-        self.all_features.append(features)
-        self.all_labels.append(self.label)
+        self.all_labels = np.concatenate(labels)
+        self.all_features = np.concatenate(features)
 
         print("Generating plots with model output features...")
         save_path_svd = f"latent_space_svd_eucl.png"
@@ -120,6 +118,8 @@ class SkeletonCLR_Plotting(PT_Processor):
 
         #selected_labels = [0, 5, 11, 17, 23, 29, 35, 41, 47, 53]
         selected_labels = [0, 5, 11, 17, 23, 26, 34, 35, 43, 54]
+        #selected_labels = [4, 5, 6, 7, 8, 20, 25, 35, 46, 54]
+
         visualize_latent_space(self.all_features, self.all_labels, method='svd', save_path=save_path_svd, selected_labels=selected_labels)
         visualize_latent_space(self.all_features, self.all_labels, method='pca', save_path=save_path_pca, selected_labels=selected_labels)
         visualize_latent_space(self.all_features, self.all_labels, method='tsne', save_path=save_path_tsne, selected_labels=selected_labels)
@@ -141,9 +141,7 @@ class SkeletonCLR_Plotting(PT_Processor):
         parser.add_argument('--nesterov', type=str2bool, default=True, help='use nesterov or not')
         parser.add_argument('--weight_decay', type=float, default=0.0001, help='weight decay for optimizer')
         parser.add_argument('--view', type=str, default='joint', help='the view of input')
-        parser.add_argument('--sup_epoch', type=int, default=1e6, help='the starting epoch of supervised training')
         parser.add_argument('--temperature', type=float, default=0.07, help='the temperature used in supervised training loss')
-        parser.add_argument('--curvature', type=float, default=1.0, help='the curvature of the Poincaré ball')
         
         # endregion yapf: enable
 

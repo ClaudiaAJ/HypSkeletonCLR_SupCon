@@ -48,7 +48,7 @@ taskRoles:
       #- python3 main.py plot_skeletonclr_eucl --config config/plotting/plotting_skeletonclr_eucl_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/euclidean/eucl_unsupervised/epoch300_model.pt
       
       # SkeletonCLR Linear Evaluation
-      #- python3 main.py linear_evaluation --config config/linear_eval/linear_eval_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/k_eucl_norm/epoch30_model.pt
+      #- python3 main.py linear_evaluation --config config/linear_eval/linear_eval_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/im_proj_k_eucl/epoch300_model.pt
 
       - echo "Done"
 extras:

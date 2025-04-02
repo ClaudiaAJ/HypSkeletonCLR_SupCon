@@ -240,9 +240,6 @@ class LE_Processor(Processor):
         loss_value = []
         result_frag = []
         label_frag = []
-        features = []
-
-        poincare_ball = gt.PoincareBall(1.0) # to-do: get curvature from config file
 
         for data, label in loader:
             # get data
@@ -252,23 +249,15 @@ class LE_Processor(Processor):
             # inference
             with torch.no_grad():
                 output = self.model(data, view=self.arg.view)
-                latent_features = self.model.encoder_q(data)  # Extract latent features
-                latent_features = poincare_ball.expmap0(latent_features)
-                features.append(latent_features.cpu().numpy())
             result_frag.append(output.data.cpu().numpy())
 
             # get loss
             loss = self.loss(output, label)
             loss_value.append(loss.item())
             label_frag.append(label.data.cpu().numpy())
-
+        
         self.result = np.concatenate(result_frag)
         self.label = np.concatenate(label_frag)
-
-        features = np.concatenate(features)
-
-        self.all_features.append(features)
-        self.all_labels.append(self.label)
 
         self.eval_info['eval_mean_loss']= np.mean(loss_value)
         self.show_eval_info()

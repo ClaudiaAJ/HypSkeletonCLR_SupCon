@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torchlight import import_class
 
 
-class SkeletonCLR(nn.Module):
+class SkeletonCLR_Eucl(nn.Module):
     """ Referring to the code of MOCO, https://arxiv.org/abs/1911.05722 """
 
     def __init__(self, base_encoder=None, pretrain=True, feature_dim=128, queue_size=32768,
