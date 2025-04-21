@@ -20,6 +20,7 @@ from torchlight import import_class
 from .processor import Processor
 
 import geoopt as gt
+import geoopt.manifolds.stereographic.math as pmath 
 
 from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR
 
@@ -192,11 +193,15 @@ class LE_Processor(Processor):
         loader = self.data_loader['train']
         loss_value = []
 
+        poincare_ball = gt.PoincareBall(c=1.0) # to-do: get c from config
+
         for data, label in loader:
             self.global_step += 1
             # get data
             data = data.float().to(self.dev, non_blocking=True)
             label = label.long().to(self.dev, non_blocking=True)
+
+            data = pmath.expmap0(data, k=poincare_ball.k)
 
             # forward
             output = self.model(data, view=self.arg.view)
@@ -241,10 +246,14 @@ class LE_Processor(Processor):
         result_frag = []
         label_frag = []
 
+        poincare_ball = gt.PoincareBall(c=1.0)
+
         for data, label in loader:
             # get data
             data = data.float().to(self.dev, non_blocking=True)
             label = label.long().to(self.dev, non_blocking=True)
+
+            data = pmath.expmap0(data, k=poincare_ball.k)
 
             # inference
             with torch.no_grad():

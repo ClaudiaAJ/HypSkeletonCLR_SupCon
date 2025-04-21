@@ -12,7 +12,7 @@ taskRoles:
     dockerImage: image
     resourcePerInstance:
       cpu: 4
-      memoryMB: 30000
+      memoryMB: 60000
       gpu: 1
     nodeSelectionPerInstance:
       - key: nvidia.com/gpu.memory
@@ -30,7 +30,7 @@ taskRoles:
 
       # WandB API key
       - export WANDB_API_KEY=8f7dc3eab0cb8691f587c5f508a1be5a585eddc4
-      - wandb disabled # enabled/disabled
+      - wandb enabled # enabled/disabled
 
       # Installation of hyperbolic tSNE
       - cd tools/hyperbolic-tsne 
@@ -41,14 +41,15 @@ taskRoles:
 
       # SkeletonCLR Pretraining
       #- python3 main.py pretrain_skeletonclr --config config/SkeletonCLR/skeletonclr_xview.yaml
+      - python3 main.py pretrain_skeletonclr_3views --config config/SkeletonCLR/skeletonclr_3views_xview.yaml
       #- python3 main.py pretrain_skeletonclr_eucl --config config/SkeletonCLR/skeletonclr_eucl_xview.yaml
 
       # SkeletonCLR Plotting
-      - python3 main.py plot_skeletonclr --config config/plotting/plotting_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/unsupervised/epoch300_model.pt
-      #- python3 main.py plot_skeletonclr_eucl --config config/plotting/plotting_skeletonclr_eucl_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/euclidean/eucl_unsupervised/epoch300_model.pt
+      #- python3 main.py plot_skeletonclr --config config/plotting/plotting_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/clustered_labels_norm_150/epoch150_model.pt
+      #- python3 main.py plot_skeletonclr_eucl --config config/plotting/plotting_skeletonclr_eucl_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/eucl_even_vs_odd_labels_0/epoch300_model.pt
       
       # SkeletonCLR Linear Evaluation
-      #- python3 main.py linear_evaluation --config config/linear_eval/linear_eval_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/im_proj_k_eucl/epoch300_model.pt
+      #- python3 main.py linear_evaluation --config config/linear_eval/linear_eval_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/clustered_labels_norm_150/epoch150_model.pt
 
       - echo "Done"
 extras:

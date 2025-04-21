@@ -6,7 +6,7 @@ from torchlight import import_class
 import geoopt as gt
 import geoopt.manifolds.stereographic.math as pmath 
 
-import tools.hyptorch.pmath as pmath
+#import tools.hyptorch.pmath as pmath
 
 class SkeletonCLR(nn.Module):
     """ Referring to the code of MOCO, https://arxiv.org/abs/1911.05722 """
@@ -101,19 +101,31 @@ class SkeletonCLR(nn.Module):
             return self.cross_training(im_q, im_k, topk, context)
 
         if not self.pretrain:
+            """
+            Linear evaluation:
+                perform same projections as in pretraining
+            """
             #im_q = poincare_ball.expmap0(im_q)
+            
             #im_q = poincare_ball.logmap0(im_q)
+
             #q = self.encoder_q(im_q)
             #q = poincare_ball.expmap0(q)
+
+            #q = F.normalize(q, dim=1)
             #return q
             return self.encoder_q(im_q)
+        
+        """
+        Pretraining:
+            project features to poincare ball in hyperbolic space
+        """
+        #im_q = poincare_ball.expmap0(im_q)
+        #im_q = poincare_ball.logmap0(im_q)
 
-        im_q = poincare_ball.expmap0(im_q)
-        im_q = poincare_ball.logmap0(im_q)
         # compute query features
         q = self.encoder_q(im_q)  # queries shape: [batch_size, feature_dim]
-        #q = F.normalize(q, dim=1)
-        # HYP: Embed in the Poincaré ball
+        q = F.normalize(q, dim=1)
         q = poincare_ball.expmap0(q) # shape: [batch_size, feature_dim]
 
         # compute key features
@@ -122,22 +134,22 @@ class SkeletonCLR(nn.Module):
 
             #im_k = poincare_ball.expmap0(im_k)
             #im_k = poincare_ball.logmap0(im_k)
-            k = self.encoder_k(im_k)  # keys shape: [batch_size, feature_dim]
-            #k = F.normalize(k, dim=1)
-            # HYP: Embed in the Poincaré ball
-            #k_eucl = k.clone().detach()
-            k = poincare_ball.expmap0(k) # shape: [batch_size, feature_dim]
 
+            # compute key features
+            k = self.encoder_k(im_k)  # keys shape: [batch_size, feature_dim]
+            k = F.normalize(k, dim=1)
+            k_eucl = k.clone().detach()
+            k = poincare_ball.expmap0(k) # shape: [batch_size, feature_dim]
+        
         # compute logits
         # positive logits shape: [batch_size, 1]
         l_pos = -poincare_ball.dist(q, k).unsqueeze(-1) 
 
         # negative logits shape: [batch_size, queue_size]
-        # HYP: Transpose self.queue to match dimensions for pairwise comparison [feature_dim, queue_size]
-        # Expand q and queue to compute pairwise distances
-        # Compute all pairwise (negative) hyperbolic distances between q and queue
-        l_neg = -poincare_ball.dist(q.unsqueeze(1), self.queue.clone().detach().T.unsqueeze(0)) # yields same output as line below
-        #l_neg = -poincare_ball.dist(q.unsqueeze(1), poincare_ball.expmap0(self.queue.clone().detach().T))
+        # transpose self.queue to match dimensions for pairwise comparison [feature_dim, queue_size]
+        # expand q and queue to compute pairwise distances
+        # compute all pairwise (negative) hyperbolic distances between q and queue
+        l_neg = -poincare_ball.dist(q.unsqueeze(1), poincare_ball.expmap0(self.queue.clone().detach().T))
 
         # logits shape: [batch_size, 1+queue_size]
         logits = torch.cat([l_pos, l_neg], dim=1)
@@ -148,13 +160,16 @@ class SkeletonCLR(nn.Module):
         # labels: positive key indicators
         labels = torch.zeros(logits.shape[0], dtype=torch.long).cuda()
 
-        # HYP: Supervised Contrastive Learning
         # Combine q (query) and k (key) as two views of the same image
         features = torch.cat([q.unsqueeze(1), k.unsqueeze(1)], dim=1)  # features shape: [batch_size, n_views, feature_dim], with n_views=2 (q and k)
+
+        #queue = poincare_ball.expmap0(self.queue.clone().detach().T).unsqueeze(0) # sh [1, queue_size, feature_dim]
+        #queue_reshaped = queue.expand(q.shape[0], -1, -1) # [batch_size, queue_size, feature_dim]
+        #features = torch.cat([q.unsqueeze(1), queue_reshaped], dim=1) # features shape: [batch_size, n_views, feature_dim], with n_views=1+queue_size (q and queue)
         
         # dequeue and enqueue
-        self._dequeue_and_enqueue(k)
-        #self._dequeue_and_enqueue(k_eucl)
+        #self._dequeue_and_enqueue(k)
+        self._dequeue_and_enqueue(k_eucl)
 
         return logits, labels, features
         

@@ -41,6 +41,7 @@ if __name__ == '__main__':
     processors['pretrain_crossclr'] = import_class('processor.pretrain_crossclr.CrosSCLR_Processor')
     processors['pretrain_skeletonclr'] = import_class('processor.pretrain_skeletonclr.SkeletonCLR_Processor')
     processors['pretrain_skeletonclr_eucl'] = import_class('processor.pretrain_skeletonclr_eucl.SkeletonCLR_Processor')
+    processors['pretrain_skeletonclr_3views'] = import_class('processor.pretrain_skeletonclr_3views.SkeletonCLR_3views_Processor')
 
     processors['plot_skeletonclr'] = import_class('processor.plot_skeletonclr.SkeletonCLR_Plotting')
     processors['plot_skeletonclr_eucl'] = import_class('processor.plot_skeletonclr_eucl.SkeletonCLR_Plotting')

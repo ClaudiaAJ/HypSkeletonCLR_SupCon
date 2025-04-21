@@ -33,6 +33,7 @@ import seaborn as sns
 from sklearn.preprocessing import normalize
 
 import geoopt as gt
+import geoopt.manifolds.stereographic.math as pmath 
 
 
 def visualize_latent_space(features, labels, method='pca', n_components=2, random_state=42, save_path=None, selected_labels=None):
@@ -49,6 +50,16 @@ def visualize_latent_space(features, labels, method='pca', n_components=2, rando
         mask = np.isin(labels, selected_labels)
         features = features[mask]
         labels = labels[mask]
+    
+    #'''
+    label_mapping = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 1, 8: 1, 9: 0,
+                        10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 3, 16: 3, 17: 0, 18: 0, 19: 0,
+                        20: 0, 21: 3, 22: 0, 23: 1, 24: 0, 25: 1, 26: 1, 27: 0, 28: 0, 29: 0,
+                        30: 0, 31: 0, 32: 0, 33: 0, 34: 2, 35: 2, 36: 0, 37: 0, 38: 0, 39: 0,
+                        40: 2, 41: 3, 42: 3, 43: 3, 44: 3, 45: 3, 46: 3, 47: 3, 48: 0, 49: 0,
+                        50: 1, 51: 0, 52: 0, 53: 0, 54: 3, 55: 0, 56: 0, 57: 0, 58: 1, 59: 1}
+    labels = torch.tensor([label_mapping[int(l)] for l in labels])
+    #'''
     
     if method == 'pca':
         reducer = PCA(n_components=n_components, random_state=random_state)
@@ -90,7 +101,7 @@ def visualize_latent_space(features, labels, method='pca', n_components=2, rando
             n_neighbors=100, hd_method="vdm2008", hd_params=None, verbose=1)
         result = (D, V)
 
-        reduced_features = reducer. fit_transform(result)
+        reduced_features = reducer.fit_transform(result)
     else:
         reduced_features = reducer.fit_transform(features)
 
@@ -157,9 +168,9 @@ class SkeletonCLR_Plotting(PT_Processor):
 
             with torch.no_grad():
                 latent_features = self.model.encoder_q(data)
+                latent_features = F.normalize(latent_features, dim=1)
                 latent_features = self.poincare_ball.expmap0(latent_features)
                 features.append(latent_features.cpu().numpy())
-            
             labels.append(label.data.cpu().numpy())
 
         self.all_labels = np.concatenate(labels)
@@ -171,12 +182,14 @@ class SkeletonCLR_Plotting(PT_Processor):
         save_path_tsne = f"latent_space_tsne.png"
         save_path_hyp_tsne = f"latent_space_hyperbolic_tsne.png"
 
-        #selected_labels = [0, 5, 11, 17, 23, 29, 35, 41, 47, 53]
         selected_labels = [0, 5, 11, 17, 23, 26, 34, 35, 43, 54]
-        #selected_labels = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        #selected_labels = [5, 6, 9, 13, 14, 25, 39, 42, 50, 54]
+        #selected_labels = [5, 13, 14, 25, 27, 39, 42, 50, 52, 54]
+        #selected_labels = [5, 11, 13, 14, 25, 27, 39, 42, 50, 54]
+
         #visualize_latent_space(self.all_features, self.all_labels, method='svd', save_path=save_path_svd, selected_labels=selected_labels)
         #visualize_latent_space(self.all_features, self.all_labels, method='pca', save_path=save_path_pca, selected_labels=selected_labels)
-        #visualize_latent_space(self.all_features, self.all_labels, method='tsne', save_path=save_path_tsne, selected_labels=selected_labels)
+        visualize_latent_space(self.all_features, self.all_labels, method='tsne', save_path=save_path_tsne, selected_labels=selected_labels)
         visualize_latent_space(self.all_features, self.all_labels, method='hyp_tsne', save_path=save_path_hyp_tsne, selected_labels=selected_labels)
     
     @staticmethod

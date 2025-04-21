@@ -38,6 +38,16 @@ def visualize_latent_space(features, labels, method='pca', n_components=2, rando
         mask = np.isin(labels, selected_labels)
         features = features[mask]
         labels = labels[mask]
+
+    #'''
+    label_mapping = {0: 0, 1: 1, 2: 0, 3: 1, 4: 0, 5: 1, 6: 0, 7: 1, 8: 0, 9: 1,
+                    10: 0, 11: 1, 12: 0, 13: 1, 14: 0, 15: 1, 16: 0, 17: 1, 18: 0, 19: 1,
+                    20: 0, 21: 1, 22: 0, 23: 1, 24: 0, 25: 1, 26: 0, 27: 1, 28: 0, 29: 1,
+                    30: 0, 31: 1, 32: 0, 33: 1, 34: 0, 35: 1, 36: 0, 37: 1, 38: 0, 39: 1,
+                    40: 0, 41: 1, 42: 0, 43: 1, 44: 0, 45: 1, 46: 0, 47: 1, 48: 0, 49: 1,
+                    50: 0, 51: 1, 52: 0, 53: 1, 54: 0, 55: 1, 56: 0, 57: 1, 58: 0, 59: 1}
+    labels = torch.tensor([label_mapping[int(l)] for l in labels])
+    #'''
     
     if method == 'pca':
         reducer = PCA(n_components=n_components, random_state=random_state)
@@ -116,12 +126,13 @@ class SkeletonCLR_Plotting(PT_Processor):
         save_path_pca = f"latent_space_pca_eucl.png"
         save_path_tsne = f"latent_space_tsne_eucl.png"
 
-        #selected_labels = [0, 5, 11, 17, 23, 29, 35, 41, 47, 53]
-        selected_labels = [0, 5, 11, 17, 23, 26, 34, 35, 43, 54]
-        #selected_labels = [4, 5, 6, 7, 8, 20, 25, 35, 46, 54]
+        #selected_labels = [0, 5, 11, 17, 23, 26, 34, 35, 43, 54]
+        #selected_labels = [5, 6, 9, 13, 14, 25, 39, 42, 50, 54]
+        #selected_labels = [5, 13, 14, 25, 27, 39, 42, 50, 52, 54]
+        selected_labels = [5, 11, 13, 14, 25, 27, 39, 42, 50, 54]
 
-        visualize_latent_space(self.all_features, self.all_labels, method='svd', save_path=save_path_svd, selected_labels=selected_labels)
-        visualize_latent_space(self.all_features, self.all_labels, method='pca', save_path=save_path_pca, selected_labels=selected_labels)
+        #visualize_latent_space(self.all_features, self.all_labels, method='svd', save_path=save_path_svd, selected_labels=selected_labels)
+        #visualize_latent_space(self.all_features, self.all_labels, method='pca', save_path=save_path_pca, selected_labels=selected_labels)
         visualize_latent_space(self.all_features, self.all_labels, method='tsne', save_path=save_path_tsne, selected_labels=selected_labels)
     
     @staticmethod

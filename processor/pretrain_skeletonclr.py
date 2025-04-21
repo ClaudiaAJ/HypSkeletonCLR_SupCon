@@ -26,6 +26,7 @@ from tools.losses import SupConLoss
 import wandb
 
 import geoopt as gt
+import geoopt.manifolds.stereographic.math as pmath 
 
 class SkeletonCLR_Processor(PT_Processor):
     """
@@ -55,24 +56,27 @@ class SkeletonCLR_Processor(PT_Processor):
         loader = self.data_loader['train']
         loss_value = []
 
-        #poincare_ball = gt.PoincareBall(self.arg.curvature)
+        poincare_ball = gt.PoincareBall(self.arg.curvature)
 
         wandb.watch(self.model)
         # wandb.watch(self.model, log="all") # for logging of parameters panels
-
-        '''label_mapping = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 1, 8: 1, 9: 0,
+        
+        #'''
+        label_mapping = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 1, 8: 1, 9: 0,
                         10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 3, 16: 3, 17: 0, 18: 0, 19: 0,
                         20: 0, 21: 3, 22: 0, 23: 1, 24: 0, 25: 1, 26: 1, 27: 0, 28: 0, 29: 0,
                         30: 0, 31: 0, 32: 0, 33: 0, 34: 2, 35: 2, 36: 0, 37: 0, 38: 0, 39: 0,
                         40: 2, 41: 3, 42: 3, 43: 3, 44: 3, 45: 3, 46: 3, 47: 3, 48: 0, 49: 0,
-                        50: 1, 51: 0, 52: 0, 53: 0, 54: 3, 55: 0, 56: 0, 57: 0, 58: 1, 59: 1}'''
+                        50: 1, 51: 0, 52: 0, 53: 0, 54: 3, 55: 0, 56: 0, 57: 0, 58: 1, 59: 1}
         
-        label_mapping = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 0, 6: 1, 7: 2, 8: 3, 9: 4,
-                        10: 0, 11: 1, 12: 2, 13: 3, 14: 4, 15: 0, 16: 1, 17: 2, 18: 3, 19: 4,
-                        20: 0, 21: 1, 22: 2, 23: 3, 24: 4, 25: 0, 26: 1, 27: 2, 28: 3, 29: 4,
-                        30: 0, 31: 1, 32: 2, 33: 3, 34: 4, 35: 0, 36: 1, 37: 2, 38: 3, 39: 4,
-                        40: 0, 41: 1, 42: 2, 43: 3, 44: 4, 45: 0, 46: 1, 47: 2, 48: 3, 49: 4,
-                        50: 0, 51: 1, 52: 2, 53: 3, 54: 4, 55: 0, 56: 1, 57: 2, 58: 3, 59: 4}
+        '''
+        label_mapping = {0: 0, 1: 1, 2: 0, 3: 1, 4: 0, 5: 1, 6: 0, 7: 1, 8: 0, 9: 1,
+                        10: 0, 11: 1, 12: 0, 13: 1, 14: 0, 15: 1, 16: 0, 17: 1, 18: 0, 19: 1,
+                        20: 0, 21: 1, 22: 0, 23: 1, 24: 0, 25: 1, 26: 0, 27: 1, 28: 0, 29: 1,
+                        30: 0, 31: 1, 32: 0, 33: 1, 34: 0, 35: 1, 36: 0, 37: 1, 38: 0, 39: 1,
+                        40: 0, 41: 1, 42: 0, 43: 1, 44: 0, 45: 1, 46: 0, 47: 1, 48: 0, 49: 1,
+                        50: 0, 51: 1, 52: 0, 53: 1, 54: 0, 55: 1, 56: 0, 57: 1, 58: 0, 59: 1}
+        '''
 
         for [data1, data2], label in loader:
             self.global_step += 1
@@ -114,8 +118,7 @@ class SkeletonCLR_Processor(PT_Processor):
                 raise ValueError
 
             # forward
-            if epoch <= self.arg.sup_epoch:
-            #if epoch < self.arg.sup_epoch:
+            if epoch < self.arg.sup_epoch:
                 output, target, _ = self.model(data1, data2)
                 if hasattr(self.model, 'module'):
                     self.model.module.update_ptr(output.size(0))
@@ -135,7 +138,7 @@ class SkeletonCLR_Processor(PT_Processor):
                     label_sup = torch.tensor([label_mapping[int(l)] for l in label])
                 except NameError:
                     label_sup = label
-                
+
                 loss_sup = self.criterion(features_sup, label_sup)
                 
                 # new loss function: scaled sum of unsupervised and supervised loss
@@ -171,7 +174,7 @@ class SkeletonCLR_Processor(PT_Processor):
         self.epoch_info['train_mean_loss']= np.mean(loss_value)
         self.train_writer.add_scalar('loss', self.epoch_info['train_mean_loss'], epoch)
 
-        if epoch <= self.arg.sup_epoch:
+        if epoch < self.arg.sup_epoch:
             alpha = 0
             print(f"Scaling of Loss Functions -> Unsupervised: {1 - alpha:.4f}, Supervised: {alpha:.4f}")
         else:
