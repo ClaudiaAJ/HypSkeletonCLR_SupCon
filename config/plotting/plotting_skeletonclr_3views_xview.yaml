@@ -1,10 +1,10 @@
-work_dir: work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/3views_batchsize_64_2
+work_dir: work_dir/plotting/1_xview_frame50_channel16_epoch300_cross150
 
-#weights: work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/3views_batchsize_64/epoch260_model.pt
-#ignore_weights: [encoder_q.fc, encoder_q_motion.fc, encoder_q_bone.fc, encoder_k, encoder_k_motion, encoder_k_bone, queue, queue_motion, queue_bone]
+weights: work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/epoch300_model.pt
+ignore_weights: [encoder_q.fc, encoder_q_motion.fc, encoder_q_bone.fc, encoder_k, encoder_k_motion, encoder_k_bone, queue, queue_motion, queue_bone]
 
 # feeder
-train_feeder: feeder.ntu_feeder.Feeder_dual
+train_feeder: feeder.ntu_feeder.Feeder_single
 train_feeder_args:
   data_path: ../data_preprocessed/data/NTU60_frame50/xview/train_position.npy
   label_path: ../data_preprocessed/data/NTU-RGB-D/xview/train_label.pkl 
@@ -13,7 +13,6 @@ train_feeder_args:
   mmap: True
 
 # model
-#model: net.skeletonclr.SkeletonCLR
 model: net.skeletonclr_3views.SkeletonCLR_3views
 model_args:
   base_encoder: net.st_gcn.Model
@@ -34,18 +33,11 @@ model_args:
   edge_importance_weighting: True
   curvature: 1.0
 
-# optim
-nesterov: True
-weight_decay: 1e-4
-base_lr: 0.01
-optimizer: SGD
-step: [250]
-
 # training
 device: [0]
-batch_size: 64 #128
-test_batch_size: 64 #128
-num_epoch: 300
+batch_size: 128
+test_batch_size: 128
+num_epoch: 1
 start_epoch: 0
 
 view: 'all'

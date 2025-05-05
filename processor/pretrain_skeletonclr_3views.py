@@ -41,9 +41,6 @@ class SkeletonCLR_3views_Processor(PT_Processor):
             "weight_decay": self.arg.weight_decay,
             "nesterov": self.arg.nesterov,
             "num_epochs": self.arg.num_epoch,
-            "sup_epoch": self.arg.sup_epoch,
-            "temperature": self.arg.temperature,
-            "curvature": self.arg.curvature,
         })
 
     def train(self, epoch):
@@ -54,7 +51,7 @@ class SkeletonCLR_3views_Processor(PT_Processor):
         loss_motion_value = []
         loss_bone_value = []
 
-        poincare_ball = gt.PoincareBall(self.arg.curvature)
+        #poincare_ball = gt.PoincareBall(self.arg.curvature)
 
         wandb.watch(self.model)
         # wandb.watch(self.model, log="all") # for logging of parameters panels
@@ -144,9 +141,6 @@ class SkeletonCLR_3views_Processor(PT_Processor):
         parser.add_argument('--nesterov', type=str2bool, default=True, help='use nesterov or not')
         parser.add_argument('--weight_decay', type=float, default=0.0001, help='weight decay for optimizer')
         parser.add_argument('--view', type=str, default='joint', help='the view of input')
-        parser.add_argument('--sup_epoch', type=int, default=1e6, help='the starting epoch of supervised training')
-        parser.add_argument('--temperature', type=float, default=0.07, help='the temperature used in supervised training loss')
-        parser.add_argument('--curvature', type=float, default=1.0, help='the curvature of the Poincaré ball')
         
         # endregion yapf: enable
 
