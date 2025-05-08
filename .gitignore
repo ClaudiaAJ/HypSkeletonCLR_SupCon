@@ -1,0 +1,6 @@
+.idea
+*.pt
+*.ckpt
+wandb
+work_dir
+.ipynb_checkpoints
