@@ -39,7 +39,7 @@ def visualize_latent_space(features, labels, method='pca', n_components=2, rando
         features = features[mask]
         labels = labels[mask]
 
-    #'''
+    '''
     label_mapping = {0: 0, 1: 1, 2: 0, 3: 1, 4: 0, 5: 1, 6: 0, 7: 1, 8: 0, 9: 1,
                     10: 0, 11: 1, 12: 0, 13: 1, 14: 0, 15: 1, 16: 0, 17: 1, 18: 0, 19: 1,
                     20: 0, 21: 1, 22: 0, 23: 1, 24: 0, 25: 1, 26: 0, 27: 1, 28: 0, 29: 1,
@@ -62,7 +62,8 @@ def visualize_latent_space(features, labels, method='pca', n_components=2, rando
 
     # Create a scatter plot
     plt.figure(figsize=(8, 6))
-    palette = sns.color_palette("tab10", len(np.unique(labels)))
+    palette = sns.color_palette("hls", len(np.unique(labels)))
+    #palette = sns.color_palette("tab10", len(np.unique(labels)))
     sns.scatterplot(
         x=reduced_features[:, 0],
         y=reduced_features[:, 1],
@@ -126,10 +127,11 @@ class SkeletonCLR_Plotting(PT_Processor):
         save_path_pca = f"latent_space_pca_eucl.png"
         save_path_tsne = f"latent_space_tsne_eucl.png"
 
+        selected_labels = None
         #selected_labels = [0, 5, 11, 17, 23, 26, 34, 35, 43, 54]
         #selected_labels = [5, 6, 9, 13, 14, 25, 39, 42, 50, 54]
         #selected_labels = [5, 13, 14, 25, 27, 39, 42, 50, 52, 54]
-        selected_labels = [5, 11, 13, 14, 25, 27, 39, 42, 50, 54]
+        #selected_labels = [5, 11, 13, 14, 25, 27, 39, 42, 50, 54]
 
         #visualize_latent_space(self.all_features, self.all_labels, method='svd', save_path=save_path_svd, selected_labels=selected_labels)
         #visualize_latent_space(self.all_features, self.all_labels, method='pca', save_path=save_path_pca, selected_labels=selected_labels)

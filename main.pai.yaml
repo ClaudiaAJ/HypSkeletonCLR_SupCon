@@ -30,7 +30,7 @@ taskRoles:
 
       # WandB API key
       - export WANDB_API_KEY=8f7dc3eab0cb8691f587c5f508a1be5a585eddc4
-      - wandb enabled # enabled/disabled
+      - wandb disabled # enabled/disabled
 
       # Installation of hyperbolic tSNE
       - cd tools/hyperbolic-tsne 
@@ -45,13 +45,14 @@ taskRoles:
       #- python3 main.py pretrain_skeletonclr_eucl --config config/SkeletonCLR/skeletonclr_eucl_xview.yaml
 
       # SkeletonCLR Plotting
-      #- python3 main.py plot_skeletonclr --config config/plotting/plotting_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/epoch300_model.pt
-      #- python3 main.py plot_skeletonclr --config config/plotting/plotting_skeletonclr_3views_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/3views_batchsize_64/epoch260_model.pt
-      #- python3 main.py plot_skeletonclr_eucl --config config/plotting/plotting_skeletonclr_eucl_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/eucl_even_vs_odd_labels_0/epoch300_model.pt
+      #- python3 main.py plot_skeletonclr_mert --config config/plotting/plotting_skeletonclr_mert_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/supervised/epoch300_model.pt
+      #- python3 main.py plot_skeletonclr --config config/plotting/plotting_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/supervised/epoch300_model.pt
+      #- python3 main.py plot_skeletonclr --config config/plotting/plotting_skeletonclr_3views_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/3views_batchsize_64/epoch300_model.pt
+      #- python3 main.py plot_skeletonclr_eucl --config config/plotting/plotting_skeletonclr_eucl_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/euclidean/eucl_feature_dim_128_lr01/epoch300_model.pt
       
       # SkeletonCLR Linear Evaluation
-      #- python3 main.py linear_evaluation --config config/linear_eval/linear_eval_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/clustered_labels_norm_150/epoch150_model.pt
-      - python3 main.py linear_evaluation --config config/linear_eval/linear_eval_skeletonclr_3views_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/3views_batchsize_64/epoch260_model.pt
+      #- python3 main.py linear_evaluation --config config/linear_eval/linear_eval_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/supervised/epoch300_model.pt
+      - python3 main.py linear_evaluation --config config/linear_eval/linear_eval_skeletonclr_3views_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/3views_batchsize_64/epoch300_model.pt
       #- python3 main.py linear_evaluation --config config/linear_eval/linear_eval_eucl_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/euclidean/epoch300_model.pt
 
       - echo "Done"

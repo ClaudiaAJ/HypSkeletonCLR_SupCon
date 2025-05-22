@@ -193,7 +193,7 @@ class LE_Processor(Processor):
         loader = self.data_loader['train']
         loss_value = []
 
-        poincare_ball = gt.PoincareBall(c=1.0) # to-do: get c from config
+        #poincare_ball = gt.PoincareBall(self.arg.curvature)
 
         for data, label in loader:
             self.global_step += 1
@@ -201,7 +201,7 @@ class LE_Processor(Processor):
             data = data.float().to(self.dev, non_blocking=True)
             label = label.long().to(self.dev, non_blocking=True)
 
-            data = pmath.expmap0(data, k=poincare_ball.k)
+            #data = poincare_ball.expmap0(data)
 
             # forward
             output = self.model(data, view=self.arg.view)
@@ -246,14 +246,14 @@ class LE_Processor(Processor):
         result_frag = []
         label_frag = []
 
-        poincare_ball = gt.PoincareBall(c=1.0)
+        #poincare_ball = gt.PoincareBall(self.arg.curvature)
 
         for data, label in loader:
             # get data
             data = data.float().to(self.dev, non_blocking=True)
             label = label.long().to(self.dev, non_blocking=True)
 
-            data = pmath.expmap0(data, k=poincare_ball.k)
+            #data = poincare_ball.expmap0(data)
 
             # inference
             with torch.no_grad():
@@ -307,6 +307,8 @@ class LE_Processor(Processor):
         parser.add_argument('--cross_epoch', type=int, default=1e6, help='the starting epoch of cross-view training')
         parser.add_argument('--context', type=str2bool, default=True, help='using context knowledge')
         parser.add_argument('--topk', type=int, default=1, help='topk samples in cross-view training')
+        parser.add_argument('--curvature', type=float, default=1.0, help='the curvature of the Poincaré ball')
+        
         # endregion yapf: enable
 
         return parser

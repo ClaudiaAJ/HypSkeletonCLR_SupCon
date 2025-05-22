@@ -38,20 +38,20 @@ import geoopt.manifolds.stereographic.math as pmath
 
 def visualize_latent_space(features, labels, method='pca', n_components=2, random_state=42, save_path=None, selected_labels=None):
 
-    if method in ('pca', 'svd', 'tsne'):
+    if method in ('pca', 'svd', 'tsne', 'hyp_tsne'):
         print(f"Normalizing features for {method}...")
         features = normalize(features, axis=1)
         print(f"Features normalized.")
-    elif method == 'hyp_tsne':
-        print(f"Features not normalized for hyperbolic t-SNE.")
+    #elif method == 'hyp_tsne':
+    #    print(f"Features not normalized for hyperbolic t-SNE.")
 
     # Filter features and labels for selected actions
     if selected_labels is not None:
         mask = np.isin(labels, selected_labels)
         features = features[mask]
         labels = labels[mask]
-    
-    #'''
+
+    '''
     label_mapping = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 1, 8: 1, 9: 0,
                         10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 3, 16: 3, 17: 0, 18: 0, 19: 0,
                         20: 0, 21: 3, 22: 0, 23: 1, 24: 0, 25: 1, 26: 1, 27: 0, 28: 0, 29: 0,
@@ -79,11 +79,11 @@ def visualize_latent_space(features, labels, method='pca', n_components=2, rando
         opt_params = SequentialOptimizer.sequence_poincare(**opt_config)
         reducer = HyperbolicTSNE(
                     n_components=2, 
-                    metric="precomputed", 
+                    metric="cosine", 
                     opt_params=opt_params)
         
     if method == 'hyp_tsne':
-        poincare_ball = gt.PoincareBall(c=1.0) # to-do: take c from config file
+        '''poincare_ball = gt.PoincareBall(c=1.0) # to-do: take c from config file
         features = torch.tensor(features)
         D = poincare_ball.dist(features.unsqueeze(1), features.unsqueeze(0)).cpu().numpy()
         
@@ -101,13 +101,15 @@ def visualize_latent_space(features, labels, method='pca', n_components=2, rando
             n_neighbors=100, hd_method="vdm2008", hd_params=None, verbose=1)
         result = (D, V)
 
-        reduced_features = reducer.fit_transform(result)
+        reduced_features = reducer.fit_transform(result)'''
+        reduced_features = reducer.fit_transform(features)
     else:
         reduced_features = reducer.fit_transform(features)
 
     # Create a scatter plot
     plt.figure(figsize=(8, 6))
     palette = sns.color_palette("tab10", len(np.unique(labels)))
+    #palette = sns.color_palette("hls", len(np.unique(labels)))
     ax = sns.scatterplot(
         x=reduced_features[:, 0],
         y=reduced_features[:, 1],
@@ -176,16 +178,20 @@ class SkeletonCLR_Plotting(PT_Processor):
         self.all_labels = np.concatenate(labels)
         self.all_features = np.concatenate(features)
 
+        print("all_features shape:", self.all_features.shape)
+        print("all_labels shape:", self.all_labels.shape)
+
         print("Generating plots with model output features...")
         save_path_svd = f"latent_space_svd.png"
         save_path_pca = f"latent_space_pca.png"
         save_path_tsne = f"latent_space_tsne.png"
         save_path_hyp_tsne = f"latent_space_hyperbolic_tsne.png"
 
-        selected_labels = [0, 5, 11, 17, 23, 26, 34, 35, 43, 54]
+        #selected_labels = None
+        #selected_labels = [0, 5, 11, 17, 23, 26, 34, 35, 43, 54]
         #selected_labels = [5, 6, 9, 13, 14, 25, 39, 42, 50, 54]
         #selected_labels = [5, 13, 14, 25, 27, 39, 42, 50, 52, 54]
-        #selected_labels = [5, 11, 13, 14, 25, 27, 39, 42, 50, 54]
+        selected_labels = [5, 11, 13, 14, 25, 27, 39, 42, 50, 54]
 
         #visualize_latent_space(self.all_features, self.all_labels, method='svd', save_path=save_path_svd, selected_labels=selected_labels)
         #visualize_latent_space(self.all_features, self.all_labels, method='pca', save_path=save_path_pca, selected_labels=selected_labels)

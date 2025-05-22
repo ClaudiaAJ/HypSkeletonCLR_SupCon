@@ -57,6 +57,12 @@ COPY . /workspace
 # Install the application in editable mode
 RUN python3 -m pip install --no-cache-dir -e /workspace/torchlight
 
+# Install hyperbolic-tsne
+WORKDIR /workspace/tools/hyperbolic-tsne
+RUN python3 -m pip install --no-cache-dir -r requirements.txt --no-warn-script-location && \
+    python3 setup.py build_ext --inplace && \
+    python3 -m pip install --no-cache-dir . --no-warn-script-location
+
 # Set the working directory
 WORKDIR /workspace
 

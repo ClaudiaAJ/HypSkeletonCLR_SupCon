@@ -43,6 +43,7 @@ if __name__ == '__main__':
     processors['pretrain_skeletonclr_eucl'] = import_class('processor.pretrain_skeletonclr_eucl.SkeletonCLR_Processor')
     processors['pretrain_skeletonclr_3views'] = import_class('processor.pretrain_skeletonclr_3views.SkeletonCLR_3views_Processor')
 
+    processors['plot_skeletonclr_mert'] = import_class('processor.plot_skeletonclr_mert.SkeletonCLR_Plotting')
     processors['plot_skeletonclr'] = import_class('processor.plot_skeletonclr.SkeletonCLR_Plotting')
     processors['plot_skeletonclr_eucl'] = import_class('processor.plot_skeletonclr_eucl.SkeletonCLR_Plotting')
     # endregion yapf: enable
