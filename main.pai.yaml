@@ -30,7 +30,7 @@ taskRoles:
 
       # WandB API key
       - export WANDB_API_KEY=8f7dc3eab0cb8691f587c5f508a1be5a585eddc4
-      - wandb disabled # enabled/disabled
+      - wandb enabled # enabled/disabled
 
       # Installation of hyperbolic tSNE
       - cd tools/hyperbolic-tsne 

@@ -168,6 +168,12 @@ class LE_Processor(Processor):
             for param_group in self.optimizer.param_groups:
                 param_group['lr'] = lr
             self.lr = lr
+        elif self.arg.optimizer == 'RSGD' and self.arg.step:
+            lr = self.arg.base_lr * (
+                0.1**np.sum(self.meta_info['epoch'] > np.array(self.arg.step)))
+            for param_group in self.optimizer.param_groups:
+                param_group['lr'] = lr
+            self.lr = lr
         else:
             self.lr = self.arg.base_lr
 

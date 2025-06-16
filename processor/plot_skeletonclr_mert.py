@@ -67,14 +67,10 @@ class SkeletonCLR_Plotting(PT_Processor):
             print("labels shape:", labels_all.shape)
 
         features_tensor = torch.from_numpy(features).float()
-        print("features tensor before normalization:", features_tensor)
-        print(features_tensor.shape)
         features_norm = F.normalize(features_tensor, p=2, dim=1)
-        print("features tensor after normalization:", features_norm)
 
         poincare_ball = gt.PoincareBall(self.arg.curvature)
         features_norm = poincare_ball.expmap0(features_norm)
-        print("features tensor after projection:", features_norm)
         features_norm_np = features_norm.numpy()
 
         subset_size = 10000
@@ -100,8 +96,8 @@ class SkeletonCLR_Plotting(PT_Processor):
         plt.title('t-SNE of L2-normalized Features Colored by Label')
         plt.colorbar(scatter, label='Label')
         plt.tight_layout()
-        plt.show()
         plt.savefig(save_path_tsne, format='png', dpi=300, bbox_inches='tight')
+        plt.close()
         print(f"Plot saved as {save_path_tsne}.")
         
     

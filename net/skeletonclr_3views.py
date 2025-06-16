@@ -221,9 +221,6 @@ class SkeletonCLR_3views(nn.Module):
         for v1, v2 in self.Bone:
             im_k_bone[:, :, :, v1 - 1, :] = im_k[:, :, :, v1 - 1, :] - im_k[:, :, :, v2 - 1, :]
 
-        # HYP: Initialize the Poincaré ball manifold
-        poincare_ball = gt.PoincareBall(c=1.0)
-
         # compute query features
         q = self.encoder_q(im_q)  # queries shape: [batch_size, feature_dim]
         q = F.normalize(q, dim=1)

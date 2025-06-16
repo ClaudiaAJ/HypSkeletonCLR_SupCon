@@ -6,14 +6,14 @@ ignore_weights: [encoder_q.fc, encoder_q_motion.fc, encoder_q_bone.fc, encoder_k
 # feeder
 train_feeder: feeder.ntu_feeder.Feeder_dual
 train_feeder_args:
-  data_path: ../data_preprocessed/data/NTU60_frame50/xview/train_position.npy
-  label_path: ../data_preprocessed/data/NTU-RGB-D/xview/train_label.pkl 
+  data_path: /media/we/Data/Alvaro/datasets/NTU60_frame50/xview/train_position.npy
+  label_path: /media/we/Data/Alvaro/datasets/NTU-RGB-D/xview/train_label.pkl
   shear_amplitude: 0.5
   temperal_padding_ratio: 6
   mmap: True
 
 # model
-model: net.skeletonclr.SkeletonCLR
+model: net.skeletonclr_3views.SkeletonCLR_3views
 model_args:
   base_encoder: net.st_gcn.Model
   pretrain: True
@@ -40,7 +40,7 @@ test_batch_size: 128
 num_epoch: 1
 start_epoch: 0
 
-view: 'joint'
+view: 'all'
 
 # log
 save_interval: 5

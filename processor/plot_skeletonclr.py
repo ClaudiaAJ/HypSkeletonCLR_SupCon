@@ -146,7 +146,7 @@ def visualize_latent_space(features, labels, method='pca', n_components=2, rando
         plt.savefig(save_path, format='png', dpi=300, bbox_inches='tight')
         print(f"Plot saved as {save_path}.")
     
-    plt.show()
+    plt.close()
 
 class SkeletonCLR_Plotting(PT_Processor):
     def __init__(self, *args, **kwargs):

@@ -117,7 +117,7 @@ class PT_Processor(Processor):
         else:
             self.lr_scheduler = None  # No scheduler if num_epoch is not defined
         
-    def adjust_lr_scheduler(self):
+    def adjust_lr(self):
         # Using CosineAnnealingLR scheduler with warmup
         if self.lr_scheduler:
             self.lr_scheduler.step()  # Update the learning rate based on the current epoch
@@ -125,8 +125,14 @@ class PT_Processor(Processor):
         else:
             self.lr = self.arg.base_lr
 
-    def adjust_lr(self):
+    def adjust_lr_old(self):
         if self.arg.optimizer == 'SGD' and self.arg.step:
+            lr = self.arg.base_lr * (
+                0.1**np.sum(self.meta_info['epoch'] > np.array(self.arg.step)))
+            for param_group in self.optimizer.param_groups:
+                param_group['lr'] = lr
+            self.lr = lr
+        elif self.arg.optimizer == 'RSGD' and self.arg.step:
             lr = self.arg.base_lr * (
                 0.1**np.sum(self.meta_info['epoch'] > np.array(self.arg.step)))
             for param_group in self.optimizer.param_groups:
