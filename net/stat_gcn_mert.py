@@ -1,3 +1,5 @@
+import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -6,22 +8,39 @@ from net.utils.tgcn import ConvTemporalGraphical
 from net.utils.graph import Graph
 
 class SpatialAttention(nn.Module):
+    """
+    Spatial multi‐head attention over V joints at each of T frames,
+    using three separate 1×1 convs for Q, K, and V. Returns (out, attn_weights).
+
+    Input:
+      x: (N, C, T, V)
+      A: (K, V, V) or (V, V) adjacency
+    Output:
+      out:  (N, C, T, V)
+      attn: (N, heads, T, V, V)
+    """
     def __init__(self, channels: int, heads: int = 8, dropout: float = 0.1):
         super().__init__()
         assert channels % heads == 0, "channels must be divisible by heads"
         self.heads = heads
         self.d_head = channels // heads
-        # one 1×1 conv to produce Q||K||V
-        self.qkv_conv = nn.Conv2d(channels, channels * 3, kernel_size=1)
+
+        # three separate 1×1 convs for Q, K, V
+        self.q_conv = nn.Conv2d(channels, channels, kernel_size=1)
+        self.k_conv = nn.Conv2d(channels, channels, kernel_size=1)
+        self.v_conv = nn.Conv2d(channels, channels, kernel_size=1)
+
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x: torch.Tensor, A: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, A: torch.Tensor):
         N, C, T, V = x.shape
-        # project to Q,K,V
-        qkv = self.qkv_conv(x)                     # (N, 3C, T, V)
-        Q, K, Vv = torch.split(qkv, C, dim=1)       # each (N, C, T, V)
 
-        # reshape & permute to (N, heads, T, V, d_head)
+        # 1) project to Q, K, V separately
+        Q = self.q_conv(x)    # (N, C, T, V)
+        K = self.k_conv(x)    # (N, C, T, V)
+        Vv= self.v_conv(x)    # (N, C, T, V)
+
+        # 2) reshape & permute into heads → (N, heads, T, V, d_head)
         def to_heads(y):
             y = y.view(N, self.heads, self.d_head, T, V)
             return y.permute(0, 1, 3, 4, 2)
@@ -30,57 +49,84 @@ class SpatialAttention(nn.Module):
         Kh = to_heads(K)
         Vh = to_heads(Vv)
 
-        # mask out non-edges
-        adj = A.any(dim=0)  # → shape (V, V)
-        mask = (~adj).view(1, 1, 1, V, V)
+        # 3) build adjacency mask: collapse (K, V, V)→(V, V) if needed
+        adj = A.any(dim=0)    # (V, V) boolean
 
-        # fused FlashAttention call
-        out = F.scaled_dot_product_attention(
-            Qh, Kh, Vh,
-            attn_mask=mask,
-            dropout_p=self.dropout.p,
-            is_causal=False
-        )  # → (N, heads, T, V, d_head)
+        mask = (~adj).view(1, 1, 1, V, V)  # (1,1,1,V,V) broadcastable to (N,heads,T,V,V)
 
-        # back to (N, C, T, V)
-        out = out.permute(0,1,4,2,3).contiguous()   # (N, heads, d_head, T, V)
-        return out.view(N, C, T, V)
+        # 4) compute raw attention scores → (N, heads, T, V, V)
+        scores = torch.matmul(Qh, Kh.transpose(-2, -1)) / math.sqrt(self.d_head)
+        scores = scores.masked_fill(mask, float("-inf"))
 
+        # 5) softmax + dropout → attn weights
+        attn = F.softmax(scores, dim=-1)            # (N, heads, T, V, V)
+        attn = self.dropout(attn)
+
+        # 6) aggregate values → (N, heads, T, V, d_head)
+        out_h = torch.matmul(attn, Vh)
+
+        # 7) recombine heads → (N, C, T, V)
+        out = out_h.permute(0, 1, 4, 2, 3).contiguous()  # (N, heads, d_head, T, V)
+        out = out.view(N, C, T, V)
+
+        return out, attn
 
 class TemporalAttention(nn.Module):
+    """
+    Non‐causal temporal multi‐head attention over T frames for each of V joints,
+    using three separate 1×1 convs for Q, K, and V. Returns (out, attn_weights).
+
+    Input:
+      x: (N, C, T, V)
+    Output:
+      out:  (N, C, T, V)
+      attn: (N, heads, V, T, T)
+    """
     def __init__(self, channels: int, heads: int = 8, dropout: float = 0.1):
         super().__init__()
-        assert channels % heads == 0
+        assert channels % heads == 0, "channels must be divisible by heads"
         self.heads  = heads
         self.d_head = channels // heads
-        self.qkv_conv = nn.Conv2d(channels, channels * 3, kernel_size=1)
-        self.dropout  = nn.Dropout(dropout)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # three separate 1×1 convs for Q, K, V
+        self.q_conv = nn.Conv2d(channels, channels, kernel_size=1)
+        self.k_conv = nn.Conv2d(channels, channels, kernel_size=1)
+        self.v_conv = nn.Conv2d(channels, channels, kernel_size=1)
+
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x: torch.Tensor):
         N, C, T, V = x.shape
-        qkv = self.qkv_conv(x)                      # (N, 3C, T, V)
-        Q, K, Vv = torch.split(qkv, C, dim=1)        # each (N, C, T, V)
 
-        # reshape so time is attention axis: (N, heads, V, T, d_head)
+        # 1) project to Q, K, V separately
+        Q = self.q_conv(x)    # (N, C, T, V)
+        K = self.k_conv(x)    # (N, C, T, V)
+        Vv= self.v_conv(x)    # (N, C, T, V)
+
+        # 2) reshape & permute so time is the attention axis → (N, heads, V, T, d_head)
         def to_heads_time(y):
             y = y.view(N, self.heads, self.d_head, T, V)
-            return y.permute(0,1,4,3,2)
+            return y.permute(0, 1, 4, 3, 2)  # (N, heads, V, T, d_head)
 
         Qh = to_heads_time(Q)
         Kh = to_heads_time(K)
         Vh = to_heads_time(Vv)
 
-        # fused FlashAttention over frames
-        out = F.scaled_dot_product_attention(
-            Qh, Kh, Vh,
-            attn_mask=None,
-            dropout_p=self.dropout.p,
-            is_causal=False
-        )  # → (N, heads, V, T, d_head)
+        # 3) compute raw attention scores → (N, heads, V, T, T)
+        scores = torch.matmul(Qh, Kh.transpose(-2, -1)) / math.sqrt(self.d_head)
 
-        # back to (N, C, T, V)
-        out = out.permute(0,1,4,3,2).contiguous()   # (N, heads, d_head, T, V)
-        return out.view(N, C, T, V)
+        # 4) softmax + dropout → attn weights
+        attn = F.softmax(scores, dim=-1)             # (N, heads, V, T, T)
+        attn = self.dropout(attn)
+
+        # 5) aggregate values → (N, heads, V, T, d_head)
+        out_h = torch.matmul(attn, Vh)
+
+        # 6) recombine heads → (N, C, T, V)
+        out = out_h.permute(0, 1, 4, 3, 2).contiguous()  # (N, heads, d_head, T, V)
+        out = out.view(N, C, T, V)
+
+        return out, attn
 
 class Model(nn.Module):
     r"""Spatial temporal graph convolutional networks."""
@@ -134,9 +180,14 @@ class Model(nn.Module):
         x = x.permute(0, 1, 3, 4, 2).contiguous()
         x = x.view(N * M, C, T, V)
 
-        # forward
-        for gcn, importance in zip(self.st_gcn_networks, self.edge_importance):
-            x, _ = gcn(x, self.A * importance)
+        all_sp_attns = []
+        all_tp_attns = []
+
+        # 2) ST‐GCN + collect attention weights
+        for gcn, imp in zip(self.st_gcn_networks, self.edge_importance):
+            x, _, sp_attn, tp_attn = gcn(x, self.A * imp)
+            all_sp_attns.append(sp_attn.detach())  # (N*M, heads, T, V, V)
+            all_tp_attns.append(tp_attn.detach())  # (N*M, heads, V, T, T)
 
         # global pooling
         x = F.avg_pool2d(x, x.size()[2:])
@@ -145,7 +196,7 @@ class Model(nn.Module):
         # prediction
         x = self.fc(x)
         x = x.view(x.size(0), -1)
-        return x
+        return x, all_sp_attns, all_tp_attns
 
 
 class st_gcn(nn.Module):
@@ -236,10 +287,12 @@ class st_gcn(nn.Module):
 
         res = self.residual(x)
         x, A = self.gcn(x, A)
-        #x = self.spatial_attn(x, A)
-        #x = self.temporal_attn(x)
-        x = x + self.spatial_attn(x, A)
-        x = x + self.temporal_attn(x)
-        x = self.tcn(x) + res
 
-        return self.relu(x), A
+        out_sp, att_sp = self.spatial_attn(x, A)
+        x = x + out_sp
+
+        out_tp, att_tp = self.temporal_attn(x)
+        x = x + out_tp
+
+        x = self.tcn(x) + res
+        return self.relu(x), A, att_sp, att_tp
