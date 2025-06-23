@@ -284,7 +284,6 @@ class st_gcn(nn.Module):
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x, A):
-
         res = self.residual(x)
         x, A = self.gcn(x, A)
 

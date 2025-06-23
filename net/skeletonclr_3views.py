@@ -223,15 +223,15 @@ class SkeletonCLR_3views(nn.Module):
 
         # compute query features
         q = self.encoder_q(im_q)  # queries shape: [batch_size, feature_dim]
-        q = F.normalize(q, dim=1)
+        #q = F.normalize(q, dim=1)
         q = poincare_ball.expmap0(q) # shape: [batch_size, feature_dim]
 
         q_motion = self.encoder_q_motion(im_q_motion)
-        q_motion = F.normalize(q_motion, dim=1)
+        #q_motion = F.normalize(q_motion, dim=1)
         q_motion = poincare_ball.expmap0(q_motion)
 
         q_bone = self.encoder_q_bone(im_q_bone)
-        q_bone = F.normalize(q_bone, dim=1)
+        #q_bone = F.normalize(q_bone, dim=1)
         q_bone = poincare_ball.expmap0(q_bone)
 
         # compute key features
@@ -242,17 +242,17 @@ class SkeletonCLR_3views(nn.Module):
 
             # compute key features
             k = self.encoder_k(im_k)  # keys shape: [batch_size, feature_dim]
-            k = F.normalize(k, dim=1)
+            #k = F.normalize(k, dim=1)
             k_eucl = k.clone().detach()
             k = poincare_ball.expmap0(k) # shape: [batch_size, feature_dim]
 
             k_motion = self.encoder_k_motion(im_k_motion)
-            k_motion = F.normalize(k_motion, dim=1)
+            #k_motion = F.normalize(k_motion, dim=1)
             k_motion_eucl = k_motion.clone().detach()
             k_motion = poincare_ball.expmap0(k_motion)
 
             k_bone = self.encoder_k_bone(im_k_bone)
-            k_bone = F.normalize(k_bone, dim=1)
+            #k_bone = F.normalize(k_bone, dim=1)
             k_bone_eucl = k_bone.clone().detach()
             k_bone = poincare_ball.expmap0(k_bone)
         

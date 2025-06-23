@@ -46,25 +46,34 @@ def generate_pseudo_labels_from_attention(sp_attns, tp_attns, num_clusters):
         """
 
         # 1) Concatenate attention maps from all layers
-        # Example: concatenate over heads and layers for each sample
-        # We'll flatten each attention tensor into a vector per sample, then concatenate
-        
+        if isinstance(sp_attns[0], list):
+            sp_attns = [item for sublist in sp_attns for item in sublist]
+        if isinstance(tp_attns[0], list):
+            tp_attns = [item for sublist in tp_attns for item in sublist]
+
+        target_sp_shape = sp_attns[0].shape  # Now should be tensor with shape
+
         all_features = []
-        
         for sp_att, tp_att in zip(sp_attns, tp_attns):
-            # sp_att shape: (N, heads, T, V, V)
-            N, heads, T, V, _ = sp_att.shape
-            
-            # flatten spatial attention for each sample:
-            sp_flat = sp_att.view(N, -1)  # (N, heads*T*V*V)
-            
-            # flatten temporal attention:
-            tp_flat = tp_att.view(N, -1)  # (N, heads*V*T*T)
-            
-            combined = torch.cat([sp_flat, tp_flat], dim=1)  # (N, feature_dim)
+            # split batch into two views
+            N = sp_att.shape[0]
+            half = N // 2
+            sp_pooled1 = sp_att[:half].mean(dim=(1,2,4))
+            sp_pooled2 = sp_att[half:].mean(dim=(1,2,4))
+            tp_pooled1 = tp_att[:half].mean(dim=(1,3,4))
+            tp_pooled2 = tp_att[half:].mean(dim=(1,3,4))
+
+            # average the two views
+            sp_pooled = (sp_pooled1 + sp_pooled2) / 2
+            tp_pooled = (tp_pooled1 + tp_pooled2) / 2
+
+            combined = torch.cat([sp_pooled, tp_pooled], dim=1)
             all_features.append(combined)
-        
-        # Stack features from all layers → (N, total_feature_dim)
+
+        if len(all_features) == 0:
+            raise ValueError("No attention layers with matching shape found!")
+
+        # Stack features from all layers → (N, 500)
         features = torch.cat(all_features, dim=1).cpu().numpy()
         
         # 2) Hierarchical clustering with Ward linkage
@@ -75,7 +84,7 @@ def generate_pseudo_labels_from_attention(sp_attns, tp_attns, num_clusters):
         
         return cluster_labels
 
-class SkeletonCLR_Processor(PT_Processor):
+class SkeletonCLR_Att_Processor(PT_Processor):
     """
         Processor for SkeletonCLR Pretraining.
     """
@@ -159,7 +168,8 @@ class SkeletonCLR_Processor(PT_Processor):
                 # Generate pseudo-labels (example: 10 clusters)
                 pseudo_labels = generate_pseudo_labels_from_attention(sp_att, tp_att, num_clusters=10)
                 pseudo_labels = torch.tensor(pseudo_labels, device=self.dev, dtype=torch.long)
-
+                
+                alpha = 1.0
                 loss = self.criterion(features_sup, pseudo_labels)
 
             # backward

@@ -41,7 +41,10 @@ taskRoles:
 
       # SkeletonCLR Pretraining
       #- python3 main.py pretrain_skeletonclr --config config/SkeletonCLR/skeletonclr_xview.yaml
+      #- python3 main.py pretrain_skeletonclr --config config/SkeletonCLR/skeletonclr_xsub.yaml
       #- python3 main.py pretrain_skeletonclr_3views --config config/SkeletonCLR/skeletonclr_3views_xview.yaml
+      #- python3 main.py pretrain_skeletonclr_3views --config config/SkeletonCLR/skeletonclr_3views_xsub.yaml
+      - python3 main.py pretrain_skeletonclr_att --config config/SkeletonCLR/skeletonclr_att_xview.yaml
       #- python3 main.py pretrain_skeletonclr_eucl --config config/SkeletonCLR/skeletonclr_eucl_xview.yaml
 
       # SkeletonCLR Plotting
@@ -52,7 +55,9 @@ taskRoles:
       
       # SkeletonCLR Linear Evaluation
       #- python3 main.py linear_evaluation --config config/linear_eval/linear_eval_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/supervised/epoch300_model.pt
-      - python3 main.py linear_evaluation --config config/linear_eval/linear_eval_skeletonclr_3views_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/3views_batchsize_64/epoch300_model.pt
+      #- python3 main.py linear_evaluation --config config/linear_eval/linear_eval_skeletonclr_xsub.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/c1_cosann_xsub_v2/epoch300_model.pt
+      #- python3 main.py linear_evaluation --config config/linear_eval/linear_eval_skeletonclr_3views_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/3views_batchsize_64/epoch300_model.pt
+      #- python3 main.py linear_evaluation --config config/linear_eval/linear_eval_skeletonclr_3views_xsub.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/3views_cosann_xsub/epoch300_model.pt
       #- python3 main.py linear_evaluation --config config/linear_eval/linear_eval_eucl_skeletonclr_xview.yaml --weights work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/euclidean/epoch300_model.pt
 
       - echo "Done"

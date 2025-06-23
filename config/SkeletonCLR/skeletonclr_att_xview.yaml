@@ -1,4 +1,4 @@
-work_dir: work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/c005_cosann
+work_dir: work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/att_test
 
 #weights: work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/unsupervised/epoch150_model.pt
 #ignore_weights: [encoder_q.fc, encoder_q_motion.fc, encoder_q_bone.fc, encoder_k, encoder_k_motion, encoder_k_bone, queue, queue_motion, queue_bone]
@@ -13,7 +13,7 @@ train_feeder_args:
   mmap: True
 
 # model
-model: net.skeletonclr.SkeletonCLR
+model: net.skeletonclr_att.SkeletonCLR_Att
 model_args:
   base_encoder: net.stat_gcn_mert.Model
   pretrain: True
@@ -42,15 +42,15 @@ step: [250]
 
 # training
 device: [0]
-batch_size: 128
-test_batch_size: 128
-num_epoch: 300
+batch_size: 64
+test_batch_size: 64
+num_epoch: 100
 start_epoch: 0
 
 view: 'joint'
 
 # supervised training
-sup_epoch: 150
+sup_epoch: 50
 temperature: 0.07
 curvature: 1.0
 

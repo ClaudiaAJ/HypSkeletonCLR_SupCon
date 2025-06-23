@@ -8,7 +8,7 @@ import geoopt.manifolds.stereographic.math as pmath
 
 #import tools.hyptorch.pmath as pmath
 
-class SkeletonCLR(nn.Module):
+class SkeletonCLR_Att(nn.Module):
     """ Referring to the code of MOCO, https://arxiv.org/abs/1911.05722 """
 
     def __init__(self, base_encoder=None, pretrain=True, feature_dim=128, queue_size=32768,
@@ -105,24 +105,12 @@ class SkeletonCLR(nn.Module):
             Linear evaluation:
                 perform same projections as in pretraining
             """
-            #im_q = poincare_ball.expmap0(im_q)
-            
-            #im_q = poincare_ball.logmap0(im_q)
-
-            #q = self.encoder_q(im_q)
-            #q = poincare_ball.expmap0(q)
-
-            #q = F.normalize(q, dim=1)
-            #return q
             return self.encoder_q(im_q)
         
         """
         Pretraining:
             project features to poincare ball in hyperbolic space
         """
-        #im_q = poincare_ball.expmap0(im_q)
-        #im_q = poincare_ball.logmap0(im_q)
-
         # compute query features
         q, q_sp_attns, q_tp_attns = self.encoder_q(im_q)  # queries shape: [batch_size, feature_dim]
         q = F.normalize(q, dim=1)
@@ -131,9 +119,6 @@ class SkeletonCLR(nn.Module):
         # compute key features
         with torch.no_grad():  # no gradient to keys
             self._momentum_update_key_encoder()  # update the key encoder
-
-            #im_k = poincare_ball.expmap0(im_k)
-            #im_k = poincare_ball.logmap0(im_k)
 
             # compute key features
             k, k_sp_attns, k_tp_attns = self.encoder_k(im_k)  # keys shape: [batch_size, feature_dim]
@@ -162,16 +147,11 @@ class SkeletonCLR(nn.Module):
 
         # Combine q (query) and k (key) as two views of the same image
         features = torch.cat([q.unsqueeze(1), k.unsqueeze(1)], dim=1)  # features shape: [batch_size, n_views, feature_dim], with n_views=2 (q and k)
+        
+        sp_att = [q_sp_attns, k_sp_attns]
+        tp_att = [q_tp_attns, k_tp_attns]
 
-        #queue = poincare_ball.expmap0(self.queue.clone().detach().T).unsqueeze(0) # sh [1, queue_size, feature_dim]
-        #queue_reshaped = queue.expand(q.shape[0], -1, -1) # [batch_size, queue_size, feature_dim]
-        #features = torch.cat([q.unsqueeze(1), queue_reshaped], dim=1) # features shape: [batch_size, n_views, feature_dim], with n_views=1+queue_size (q and queue)
-        
-        sp_att = torch.cat([q_sp_attns.unsqueeze(1), k_sp_attns.unsqueeze(1)], dim=1)
-        tp_att = torch.cat([q_tp_attns.unsqueeze(1), k_tp_attns.unsqueeze(1)], dim=1)
-        
         # dequeue and enqueue
-        #self._dequeue_and_enqueue(k)
         self._dequeue_and_enqueue(k_eucl)
 
         return logits, labels, features, sp_att, tp_att
