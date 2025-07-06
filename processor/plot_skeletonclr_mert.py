@@ -3,8 +3,8 @@
 import sys
 import argparse
 
-from hyperbolicTSNE import SequentialOptimizer, initialization, HyperbolicTSNE
-from hyperbolicTSNE import hd_mat_ as hd_mat
+#from hyperbolicTSNE import SequentialOptimizer, initialization, HyperbolicTSNE
+#from hyperbolicTSNE import hd_mat_ as hd_mat
 from scipy.sparse import csr_matrix
 
 import yaml

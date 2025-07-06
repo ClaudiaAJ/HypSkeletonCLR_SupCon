@@ -36,12 +36,14 @@ if __name__ == '__main__':
     # region register processor yapf: disable
     processors = dict()
     processors['linear_evaluation'] = import_class('processor.linear_evaluation.LE_Processor')
+    processors['linear_evaluation_att'] = import_class('processor.linear_evaluation_att.LE_Processor')
 
     processors['pretrain_crossclr_3views'] = import_class('processor.pretrain_crossclr_3views.CrosSCLR_3views_Processor')
     processors['pretrain_crossclr'] = import_class('processor.pretrain_crossclr.CrosSCLR_Processor')
     processors['pretrain_skeletonclr'] = import_class('processor.pretrain_skeletonclr.SkeletonCLR_Processor')
     processors['pretrain_skeletonclr_eucl'] = import_class('processor.pretrain_skeletonclr_eucl.SkeletonCLR_Processor')
     processors['pretrain_skeletonclr_3views'] = import_class('processor.pretrain_skeletonclr_3views.SkeletonCLR_3views_Processor')
+    processors['pretrain_skeletonclr_3views_eucl'] = import_class('processor.pretrain_skeletonclr_3views_eucl.SkeletonCLR_3views_Eucl_Processor')
     processors['pretrain_skeletonclr_att'] = import_class('processor.pretrain_skeletonclr_att.SkeletonCLR_Att_Processor')
 
     processors['plot_skeletonclr_mert'] = import_class('processor.plot_skeletonclr_mert.SkeletonCLR_Plotting')

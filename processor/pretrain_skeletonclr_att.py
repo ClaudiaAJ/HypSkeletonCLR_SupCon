@@ -29,6 +29,7 @@ import geoopt as gt
 import geoopt.manifolds.stereographic.math as pmath 
 
 from scipy.cluster.hierarchy import linkage, fcluster
+from sklearn.cluster import KMeans
 
 
 def generate_pseudo_labels_from_attention(sp_attns, tp_attns, num_clusters):
@@ -45,15 +46,14 @@ def generate_pseudo_labels_from_attention(sp_attns, tp_attns, num_clusters):
             pseudo_labels: np.ndarray, shape (N,) with cluster assignments
         """
 
+        all_features = []
+
         # 1) Concatenate attention maps from all layers
         if isinstance(sp_attns[0], list):
             sp_attns = [item for sublist in sp_attns for item in sublist]
         if isinstance(tp_attns[0], list):
             tp_attns = [item for sublist in tp_attns for item in sublist]
 
-        target_sp_shape = sp_attns[0].shape  # Now should be tensor with shape
-
-        all_features = []
         for sp_att, tp_att in zip(sp_attns, tp_attns):
             # split batch into two views
             N = sp_att.shape[0]
@@ -76,11 +76,17 @@ def generate_pseudo_labels_from_attention(sp_attns, tp_attns, num_clusters):
         # Stack features from all layers → (N, 500)
         features = torch.cat(all_features, dim=1).cpu().numpy()
         
-        # 2) Hierarchical clustering with Ward linkage
-        Z = linkage(features, method='ward')
+       # 2) Hierarchical clustering with Ward linkage
+        #Z = linkage(features, method='ward')
         
         # 3) Cut dendrogram to form clusters
-        cluster_labels = fcluster(Z, t=num_clusters, criterion='maxclust')
+        #cluster_labels = fcluster(Z, t=num_clusters, criterion='maxclust')
+
+        Q = 10
+        kmeans = KMeans(n_clusters=Q, random_state=0, n_init=10).fit(features)
+        pseudo_lbls = kmeans.labels_ 
+
+        cluster_labels = pseudo_lbls               
         
         return cluster_labels
 

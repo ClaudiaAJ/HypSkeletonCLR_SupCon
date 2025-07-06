@@ -6,23 +6,23 @@ ignore_weights: [encoder_q.fc, encoder_q_motion.fc, encoder_q_bone.fc, encoder_k
 # feeder
 train_feeder: feeder.ntu_feeder.Feeder_single
 train_feeder_args:
-  data_path: /home/we/Desktop/Claudia/CrosSCLR/data/NTU60_frame50/xsub/train_position.npy
-  label_path: /home/we/Desktop/Claudia/CrosSCLR/data/NTU-RGB-D/xsub/train_label.pkl
+  data_path: /home/we/Desktop/Claudia/CrosSCLR/data/NTU60_frame50/xview/train_position.npy
+  label_path: /home/we/Desktop/Claudia/CrosSCLR/data/NTU-RGB-D/xview/train_label.pkl 
   shear_amplitude: -1
   temperal_padding_ratio: -1
   mmap: True
 test_feeder: feeder.ntu_feeder.Feeder_single
 test_feeder_args:
-  data_path: /home/we/Desktop/Claudia/CrosSCLR/data/NTU60_frame50/xsub/val_position.npy
-  label_path: /home/we/Desktop/Claudia/CrosSCLR/data/NTU-RGB-D/xsub/val_label.pkl 
+  data_path: /home/we/Desktop/Claudia/CrosSCLR/data/NTU60_frame50/xview/val_position.npy
+  label_path: /home/we/Desktop/Claudia/CrosSCLR/data/NTU-RGB-D/xview/val_label.pkl 
   shear_amplitude: -1
   temperal_padding_ratio: -1
   mmap: True
 
 # model
-model: net.skeletonclr_3views.SkeletonCLR_3views
+model: net.skeletonclr_att.SkeletonCLR_Att
 model_args:
-  base_encoder: net.st_gcn.Model
+  base_encoder: net.stat_gcn_mert.Model
   pretrain: False
   # feature_dim: 128
   # queue_size: 32768
@@ -41,18 +41,18 @@ model_args:
   curvature: 1.0
 
 # optim
-nesterov: True # False?
+nesterov: True
 weight_decay: 0.0
 base_lr: 8.
-optimizer: RSGD
+optimizer: SGD
 step: [80]
 
 # training
 device: [0]
-batch_size: 128
-test_batch_size: 128
+batch_size: 16
+test_batch_size: 16
 num_epoch: 100
-view: 'all'
+view: 'joint'
 
 # log
 save_interval: -1

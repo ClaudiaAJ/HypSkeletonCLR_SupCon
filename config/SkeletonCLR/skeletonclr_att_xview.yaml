@@ -1,13 +1,13 @@
 work_dir: work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/att_test
 
-#weights: work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/unsupervised/epoch150_model.pt
-#ignore_weights: [encoder_q.fc, encoder_q_motion.fc, encoder_q_bone.fc, encoder_k, encoder_k_motion, encoder_k_bone, queue, queue_motion, queue_bone]
+weights: work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/c1_cosann/epoch300_model.pt
+ignore_weights: [encoder_q.fc, encoder_q_motion.fc, encoder_q_bone.fc, encoder_k, encoder_k_motion, encoder_k_bone, queue, queue_motion, queue_bone]
 
 # feeder
 train_feeder: feeder.ntu_feeder.Feeder_dual
 train_feeder_args:
-  data_path: /media/we/Data/Alvaro/datasets/NTU60_frame50/xview/train_position.npy
-  label_path: /media/we/Data/Alvaro/datasets/NTU-RGB-D/xview/train_label.pkl
+  data_path: /home/we/Desktop/Claudia/CrosSCLR/data/NTU60_frame50/xview/train_position.npy
+  label_path: /home/we/Desktop/Claudia/CrosSCLR/data/NTU-RGB-D/xview/train_label.pkl 
   shear_amplitude: 0.5
   temperal_padding_ratio: 6
   mmap: True
@@ -50,7 +50,7 @@ start_epoch: 0
 view: 'joint'
 
 # supervised training
-sup_epoch: 50
+sup_epoch: 0
 temperature: 0.07
 curvature: 1.0
 

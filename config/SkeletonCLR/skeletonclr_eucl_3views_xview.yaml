@@ -1,23 +1,23 @@
-work_dir: work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/xsub_3views_cosann_not_norm
+work_dir: work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/3views_xview_repro
 
-#weights: work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/xsub_3views_rsgd/epoch290_model.pt
+#weights: work_dir/skeletonclr/1_xview_frame50_channel16_epoch300_cross150/3views_batchsize_64/epoch260_model.pt
 #ignore_weights: [encoder_q.fc, encoder_q_motion.fc, encoder_q_bone.fc, encoder_k, encoder_k_motion, encoder_k_bone, queue, queue_motion, queue_bone]
 
 # feeder
 train_feeder: feeder.ntu_feeder.Feeder_dual
 train_feeder_args:
-  data_path: /home/we/Desktop/Claudia/CrosSCLR/data/NTU60_frame50/xsub/train_position.npy
-  label_path: /home/we/Desktop/Claudia/CrosSCLR/data/NTU-RGB-D/xsub/train_label.pkl
+  data_path: /home/we/Desktop/Claudia/CrosSCLR/data/NTU60_frame50/xview/train_position.npy
+  label_path: /home/we/Desktop/Claudia/CrosSCLR/data/NTU-RGB-D/xview/train_label.pkl 
   shear_amplitude: 0.5
   temperal_padding_ratio: 6
   mmap: True
 
 # model
-model: net.skeletonclr_3views.SkeletonCLR_3views
+model: net.skeletonclr_3views_eucl.SkeletonCLR_3views_Eucl
 model_args:
   base_encoder: net.st_gcn.Model
   pretrain: True
-  feature_dim: 32 #128
+  feature_dim: 128
   queue_size: 32768
   momentum: 0.999
   Temperature: 0.07
@@ -31,12 +31,11 @@ model_args:
     layout: 'ntu-rgb+d'
     strategy: 'spatial'
   edge_importance_weighting: True
-  curvature: 1.0
 
 # optim
-nesterov: True
+nesterov: False
 weight_decay: 1e-4
-base_lr: 0.01
+base_lr: 0.1
 optimizer: SGD
 step: [250]
 

@@ -8,14 +8,14 @@ import geoopt.manifolds.stereographic.math as pmath
 
 #import tools.hyptorch.pmath as pmath
 
-class SkeletonCLR_3views(nn.Module):
+class SkeletonCLR_3views_Eucl(nn.Module):
     """ Referring to the code of MOCO, https://arxiv.org/abs/1911.05722 """
 
     def __init__(self, base_encoder=None, pretrain=True, feature_dim=128, queue_size=32768,
                  momentum=0.999, Temperature=0.07, mlp=True, in_channels=3, hidden_channels=64,
                  hidden_dim=256, num_class=60, dropout=0.5,
                  graph_args={'layout': 'ntu-rgb+d', 'strategy': 'spatial'},
-                 edge_importance_weighting=True, curvature=1.0, **kwargs):
+                 edge_importance_weighting=True, **kwargs):
         """
         K: queue size; number of negative keys (default: 32768)
         m: momentum of updating key encoder (default: 0.999)
@@ -46,12 +46,10 @@ class SkeletonCLR_3views(nn.Module):
                                                dropout=dropout, graph_args=graph_args,
                                                edge_importance_weighting=edge_importance_weighting,
                                                **kwargs)
-            self.c = curvature
         else:
             self.K = queue_size
             self.m = momentum
             self.T = Temperature
-            self.c = curvature
 
             self.encoder_q = base_encoder(in_channels=in_channels, hidden_channels=hidden_channels,
                                           hidden_dim=hidden_dim, num_class=feature_dim,
@@ -181,8 +179,6 @@ class SkeletonCLR_3views(nn.Module):
             im_q: a batch of query images
             im_k: a batch of key images
         """
-        # HYP: Initialize the Poincaré ball manifold
-        poincare_ball = gt.PoincareBall(self.c)
 
         if cross:
             return self.cross_training(im_q, im_k, topk, context)
@@ -224,15 +220,12 @@ class SkeletonCLR_3views(nn.Module):
         # compute query features
         q = self.encoder_q(im_q)  # queries shape: [batch_size, feature_dim]
         q = F.normalize(q, dim=1)
-        q = poincare_ball.expmap0(q) # shape: [batch_size, feature_dim]
 
         q_motion = self.encoder_q_motion(im_q_motion)
         q_motion = F.normalize(q_motion, dim=1)
-        q_motion = poincare_ball.expmap0(q_motion)
 
         q_bone = self.encoder_q_bone(im_q_bone)
         q_bone = F.normalize(q_bone, dim=1)
-        q_bone = poincare_ball.expmap0(q_bone)
 
         # compute key features
         with torch.no_grad():  # no gradient to keys
@@ -243,34 +236,23 @@ class SkeletonCLR_3views(nn.Module):
             # compute key features
             k = self.encoder_k(im_k)  # keys shape: [batch_size, feature_dim]
             k = F.normalize(k, dim=1)
-            k_eucl = k.clone().detach()
-            k = poincare_ball.expmap0(k) # shape: [batch_size, feature_dim]
 
             k_motion = self.encoder_k_motion(im_k_motion)
             k_motion = F.normalize(k_motion, dim=1)
-            k_motion_eucl = k_motion.clone().detach()
-            k_motion = poincare_ball.expmap0(k_motion)
 
             k_bone = self.encoder_k_bone(im_k_bone)
             k_bone = F.normalize(k_bone, dim=1)
-            k_bone_eucl = k_bone.clone().detach()
-            k_bone = poincare_ball.expmap0(k_bone)
         
         # compute logits
         # positive logits shape: [batch_size, 1]
-        l_pos = -poincare_ball.dist(q, k).unsqueeze(-1) 
+        l_pos = torch.einsum('nc,nc->n', [q, k]).unsqueeze(-1)
+        l_neg = torch.einsum('nc,ck->nk', [q, self.queue.clone().detach()])
 
-        # negative logits shape: [batch_size, queue_size]
-        # transpose self.queue to match dimensions for pairwise comparison [feature_dim, queue_size]
-        # expand q and queue to compute pairwise distances
-        # compute all pairwise (negative) hyperbolic distances between q and queue
-        l_neg = -poincare_ball.dist(q.unsqueeze(1), poincare_ball.expmap0(self.queue.clone().detach().T))
+        l_pos_motion = torch.einsum('nc,nc->n', [q_motion, k_motion]).unsqueeze(-1)
+        l_neg_motion = torch.einsum('nc,ck->nk', [q_motion, self.queue_motion.clone().detach()])
 
-        l_pos_motion = -poincare_ball.dist(q_motion, k_motion).unsqueeze(-1) 
-        l_neg_motion = -poincare_ball.dist(q_motion.unsqueeze(1), poincare_ball.expmap0(self.queue_motion.clone().detach().T))
-        
-        l_pos_bone = -poincare_ball.dist(q_bone, k_bone).unsqueeze(-1)
-        l_neg_bone = -poincare_ball.dist(q_bone.unsqueeze(1), poincare_ball.expmap0(self.queue_bone.clone().detach().T))
+        l_pos_bone = torch.einsum('nc,nc->n', [q_bone, k_bone]).unsqueeze(-1)
+        l_neg_bone = torch.einsum('nc,ck->nk', [q_bone, self.queue_bone.clone().detach()])
         
         # logits shape: [batch_size, 1+queue_size]
         logits = torch.cat([l_pos, l_neg], dim=1)
@@ -287,9 +269,9 @@ class SkeletonCLR_3views(nn.Module):
 
         # dequeue and enqueue
         #self._dequeue_and_enqueue(k)
-        self._dequeue_and_enqueue(k_eucl)
-        self._dequeue_and_enqueue_motion(k_motion_eucl)
-        self._dequeue_and_enqueue_bone(k_bone_eucl)
+        self._dequeue_and_enqueue(k)
+        self._dequeue_and_enqueue_motion(k_motion)
+        self._dequeue_and_enqueue_bone(k_bone)
 
         return logits, logits_motion, logits_bone, labels
         

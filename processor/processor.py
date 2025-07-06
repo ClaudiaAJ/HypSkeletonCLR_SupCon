@@ -257,7 +257,7 @@ class Processor(IO):
         # feeder
         parser.add_argument('--train_feeder', default='feeder.feeder', help='train data loader will be used')
         parser.add_argument('--test_feeder', default='feeder.feeder', help='test data loader will be used')
-        parser.add_argument('--num_worker', type=int, default=4, help='the number of worker per gpu for data loader')
+        parser.add_argument('--num_worker', type=int, default=0, help='the number of worker per gpu for data loader')
         parser.add_argument('--train_feeder_args', action=DictAction, default=dict(), help='the arguments of data loader for training')
         parser.add_argument('--test_feeder_args', action=DictAction, default=dict(), help='the arguments of data loader for test')
         parser.add_argument('--batch_size', type=int, default=256, help='training batch size')
